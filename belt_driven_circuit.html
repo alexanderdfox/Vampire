@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Belt-Driven Circuit Simulator</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: #121a33;
+            --muted: #8ea0c3;
+            --text: #eaf1ff;
+            --accent: #5aa0ff;
+            --accent2: #4ad4a8;
+            --border: #223056;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            margin: 0;
+            background: linear-gradient(180deg, #0b1020 0%, #0e1730 100%);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .title {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+        }
+        
+        .subtitle {
+            color: var(--muted);
+            font-size: 12px;
+        }
+        
+        .pill {
+            background: rgba(90,160,255,0.12);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 16px;
+        }
+        
+        .card {
+            grid-column: span 12;
+            background: linear-gradient(180deg, #121a33 0%, #0f162c 100%);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+        }
+        
+        @media (min-width: 720px) {
+            .col-4 { grid-column: span 4; }
+            .col-6 { grid-column: span 6; }
+            .col-8 { grid-column: span 8; }
+            .col-12 { grid-column: span 12; }
+        }
+        
+        h3 {
+            margin: 0 0 12px;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        
+        .kv {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            white-space: pre-line;
+            line-height: 1.5;
+            color: var(--text);
+        }
+        
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .metric {
+            background: rgba(34,48,86,0.35);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .metric .label {
+            color: var(--muted);
+            font-size: 11px;
+        }
+        
+        .metric .value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        
+        input[type=range] {
+            background: var(--border);
+            border-radius: 4px;
+            height: 6px;
+            outline: none;
+            width: 100%;
+            margin-top: 5px;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent2);
+            cursor: pointer;
+        }
+        
+        input[type=range]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent2);
+            cursor: pointer;
+            border: none;
+        }
+        
+        input[type=checkbox] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent2);
+            margin-top: 5px;
+        }
+        
+        input[type=number] {
+            font-family: ui-monospace, Menlo, Consolas, monospace;
+            width: 100%;
+            margin-top: 5px;
+            padding: 4px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--panel);
+            color: var(--text);
+            transition: border-color 0.2s ease;
+        }
+        
+        input[type=number]:focus, input[type=range]:focus {
+            border-color: var(--accent2);
+            outline: none;
+        }
+        
+        input[type=range]:active {
+            border-color: var(--accent2);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: ui-monospace, Menlo, Consolas, monospace;
+            font-size: 12px;
+        }
+        
+        th, td {
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        thead th {
+            color: #bcd0ff;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            background: rgba(34,48,86,0.35);
+        }
+        
+        tbody tr:hover {
+            background: rgba(34,48,86,0.25);
+        }
+        
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .btn {
+            appearance: none;
+            border: 1px solid var(--border);
+            background: rgba(74,212,168,0.12);
+            color: #d8fff3;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .btn:hover {
+            border-color: var(--accent2);
+        }
+        
+        .page {
+            color: var(--muted);
+            font-size: 12px;
+            min-width: 140px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <div class="title">Belt-Driven Self-Referential Circuit</div>
+                <div class="subtitle">Real-time simulation with comprehensive controls</div>
+            </div>
+            <div class="pill" id="statusPill">Standalone Simulator</div>
+        </div>
+
+        <div class="grid">
+            <div class="card col-6">
+                <h3>Noise Status</h3>
+                <div id="noise" class="kv"></div>
+            </div>
+            <div class="card col-6">
+                <h3>Voltages</h3>
+                <div id="voltages" class="kv"></div>
+            </div>
+
+            <div class="card col-12">
+                <h3>Motors</h3>
+                <div class="two-col">
+                    <div class="metric">
+                        <div class="label">Top Motor</div>
+                        <div id="motorTop" class="value">-</div>
+                    </div>
+                    <div class="metric">
+                        <div class="label">Bottom Motor</div>
+                        <div id="motorBottom" class="value">-</div>
+                    </div>
+                </div>
+                <div class="kv" id="motors" style="margin-top:10px"></div>
+            </div>
+
+            <div class="card col-12">
+                <h3>Power Sources</h3>
+                <form class="two-col" onsubmit="updateParameter(event)">
+                    <div class="metric">
+                        <div class="label">DC Voltage (V)</div>
+                        <input type="number" name="dc_voltage" value="12.0" step="0.1" min="0" max="24" />
+                    </div>
+                    <div class="metric">
+                        <div class="label">AC Voltage (V)</div>
+                        <input type="number" name="ac_voltage" value="5.0" step="0.1" min="0" max="12" />
+                    </div>
+                    <div class="metric">
+                        <div class="label">AC Frequency (Hz)</div>
+                        <input type="number" name="ac_frequency" value="60.0" step="1" min="1" max="1000" />
+                    </div>
+                    <div class="metric">
+                        <div class="label">Top Motor RPM</div>
+                        <input type="number" name="top_motor_rpm" value="100.0" step="1" min="0" max="10000" />
+                    </div>
+                </form>
+            </div>
+
+            <div class="card col-12">
+                <h3>Noise Controls</h3>
+                <form class="two-col" onsubmit="updateParameter(event)">
+                    <div class="metric">
+                        <div class="label">Noise Enabled</div>
+                        <input type="checkbox" name="noise_enabled" checked />
+                    </div>
+                    <div class="metric">
+                        <div class="label">Noise Level</div>
+                        <input type="range" name="noise_level" value="0.02" min="0" max="1" step="0.01" />
+                    </div>
+                    <div class="metric">
+                        <div class="label">Thermal Noise (V)</div>
+                        <input type="number" name="thermal_noise" value="0.001" step="0.0001" min="0" max="0.01" />
+                    </div>
+                    <div class="metric">
+                        <div class="label">Mechanical Noise (RPM)</div>
+                        <input type="number" name="mechanical_noise" value="0.1" step="0.01" min="0" max="10" />
+                    </div>
+                    <div class="metric">
+                        <div class="label">Belt Vibration (Nm)</div>
+                        <input type="number" name="belt_vibration" value="0.02" step="0.001" min="0" max="0.1" />
+                    </div>
+                    <div class="metric">
+                        <div class="label">Bottom Motor RPM</div>
+                        <input type="number" name="bottom_motor_rpm" value="100.0" step="1" min="0" max="10000" />
+                    </div>
+                </form>
+            </div>
+
+            <div class="card col-12">
+                <h3>Belt Systems</h3>
+                <form onsubmit="updateParameter(event)">
+                    <div class="two-col">
+                        <div class="metric">
+                            <div class="label">TOP_BELT Efficiency</div>
+                            <input type="range" name="belt_efficiency_TOP_BELT" value="0.97" min="0.5" max="1" step="0.01" />
+                        </div>
+                        <div class="metric">
+                            <div class="label">BOTTOM_BELT Efficiency</div>
+                            <input type="range" name="belt_efficiency_BOTTOM_BELT" value="0.97" min="0.5" max="1" step="0.01" />
+                        </div>
+                        <div class="metric">
+                            <div class="label">CROSS_BELT Efficiency</div>
+                            <input type="range" name="belt_efficiency_CROSS_BELT" value="0.92" min="0.5" max="1" step="0.01" />
+                        </div>
+                        <div class="metric">
+                            <div class="label">TOP_BELT Ratio</div>
+                            <input type="number" name="belt_ratio_TOP_BELT" value="1.0" step="0.1" min="0.1" max="5.0" />
+                        </div>
+                        <div class="metric">
+                            <div class="label">BOTTOM_BELT Ratio</div>
+                            <input type="number" name="belt_ratio_BOTTOM_BELT" value="1.0" step="0.1" min="0.1" max="5.0" />
+                        </div>
+                        <div class="metric">
+                            <div class="label">CROSS_BELT Ratio</div>
+                            <input type="number" name="belt_ratio_CROSS_BELT" value="1.0" step="0.1" min="0.1" max="5.0" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card col-12">
+                <h3>Transistors</h3>
+                <form onsubmit="updateParameter(event)">
+                    <div class="two-col">
+                        <div class="metric">
+                            <div class="label">Q1 (NPN) Gain</div>
+                            <input type="number" name="transistor_gain_Q1" value="100.0" step="1" min="1" max="500" />
+                        </div>
+                        <div class="metric">
+                            <div class="label">Q2 (NPN) Gain</div>
+                            <input type="number" name="transistor_gain_Q2" value="100.0" step="1" min="1" max="500" />
+                        </div>
+                        <div class="metric">
+                            <div class="label">Q3 (PNP) Gain</div>
+                            <input type="number" name="transistor_gain_Q3" value="80.0" step="1" min="1" max="500" />
+                        </div>
+                        <div class="metric">
+                            <div class="label">Q1 Enabled</div>
+                            <input type="checkbox" name="component_enabled_Q1" checked />
+                        </div>
+                        <div class="metric">
+                            <div class="label">Q2 Enabled</div>
+                            <input type="checkbox" name="component_enabled_Q2" checked />
+                        </div>
+                        <div class="metric">
+                            <div class="label">Q3 Enabled</div>
+                            <input type="checkbox" name="component_enabled_Q3" checked />
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card col-12">
+                <h3>Belt System Control</h3>
+                <form onsubmit="updateParameter(event)">
+                    <div class="two-col">
+                        <div class="metric">
+                            <div class="label">TOP_BELT Enabled</div>
+                            <input type="checkbox" name="belt_enabled_TOP_BELT" checked />
+                        </div>
+                        <div class="metric">
+                            <div class="label">BOTTOM_BELT Enabled</div>
+                            <input type="checkbox" name="belt_enabled_BOTTOM_BELT" checked />
+                        </div>
+                        <div class="metric">
+                            <div class="label">CROSS_BELT Enabled</div>
+                            <input type="checkbox" name="belt_enabled_CROSS_BELT" checked />
+                        </div>
+                        <div class="metric">
+                            <div class="label">TOP_MOTOR Enabled</div>
+                            <input type="checkbox" name="component_enabled_TOP_MOTOR" checked />
+                        </div>
+                        <div class="metric">
+                            <div class="label">BOTTOM_MOTOR Enabled</div>
+                            <input type="checkbox" name="component_enabled_BOTTOM_MOTOR" checked />
+                        </div>
+                        <div class="metric">
+                            <div class="label">SW1 Enabled</div>
+                            <input type="checkbox" name="component_enabled_SW1" checked />
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card col-12">
+                <h3>Belts</h3>
+                <div style="overflow:auto;">
+                    <table>
+                        <thead>
+                            <tr><th>ID</th><th>Efficiency</th><th>Slip</th><th>Tension</th></tr>
+                        </thead>
+                        <tbody id="belts"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card col-12">
+                <h3>Transistors</h3>
+                <div style="overflow:auto;">
+                    <table>
+                        <thead>
+                            <tr><th>ID</th><th>Type</th><th>Current (A)</th><th>Voltage (V)</th></tr>
+                        </thead>
+                        <tbody id="transistors"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Circuit Simulator Implementation
+        class BeltDrivenCircuitSimulator {
+            constructor() {
+                this.components = {};
+                this.beltSystems = {};
+                this.voltages = {};
+                this.running = false;
+                
+                // Circuit parameters
+                this.dcVoltage = 12.0;
+                this.acVoltage = 5.0;
+                this.acFrequency = 60.0;
+                this.timeStep = 0.1;
+                this.simulationTime = 0;
+                
+                // Mechanical parameters
+                this.motorEfficiency = 0.85;
+                this.beltTransmissionLoss = 0.05;
+                
+                // Noise parameters
+                this.noiseEnabled = true;
+                this.noiseLevel = 0.02;
+                this.thermalNoise = 0.001;
+                this.quantizationNoise = 0.0005;
+                this.mechanicalNoise = 0.1;
+                this.beltVibration = 0.02;
+                this.motorBrushNoise = 0.005;
+                this.inductorCoreNoise = 0.0003;
+                
+                this.initializeCircuit();
+                this.setupBeltSystems();
+                this.startSimulation();
+            }
+            
+            initializeCircuit() {
+                // Power Sources
+                this.components.DC_SOURCE = {
+                    type: 'DC_SOURCE', value: this.dcVoltage, enabled: true,
+                    voltage: 0, current: 0
+                };
+                this.components.AC_SOURCE = {
+                    type: 'AC_SOURCE', value: this.acVoltage, enabled: true,
+                    voltage: 0, current: 0
+                };
+                this.components.GND = {
+                    type: 'GROUND', value: 0, enabled: true,
+                    voltage: 0, current: 0
+                };
+                
+                // Motors
+                this.components.TOP_MOTOR = {
+                    type: 'MOTOR', value: 100.0, enabled: true,
+                    voltage: 0, current: 0, rpm: 0, torque: 0
+                };
+                this.components.BOTTOM_MOTOR = {
+                    type: 'MOTOR', value: 100.0, enabled: true,
+                    voltage: 0, current: 0, rpm: 0, torque: 0
+                };
+                
+                // Transistors
+                this.components.Q1 = {
+                    type: 'TRANSISTOR_NPN', value: 100.0, enabled: true,
+                    voltage: 0, current: 0
+                };
+                this.components.Q2 = {
+                    type: 'TRANSISTOR_NPN', value: 100.0, enabled: true,
+                    voltage: 0, current: 0
+                };
+                this.components.Q3 = {
+                    type: 'TRANSISTOR_PNP', value: 80.0, enabled: true,
+                    voltage: 0, current: 0
+                };
+                
+                // Transformer
+                this.components.T1 = {
+                    type: 'TRANSFORMER', value: 1.0, enabled: true,
+                    voltage: 0, current: 0
+                };
+                
+                // Switch
+                this.components.SW1 = {
+                    type: 'SWITCH', value: 0, enabled: true,
+                    voltage: 0, current: 0
+                };
+            }
+            
+            setupBeltSystems() {
+                this.beltSystems.TOP_BELT = {
+                    motor1_id: 'TOP_MOTOR', motor2_id: 'TOP_MOTOR',
+                    belt_ratio: 1.0, efficiency: 0.97, tension: 100.0,
+                    max_slip: 0.05, slip: 0.0, enabled: true
+                };
+                this.beltSystems.BOTTOM_BELT = {
+                    motor1_id: 'BOTTOM_MOTOR', motor2_id: 'BOTTOM_MOTOR',
+                    belt_ratio: 1.0, efficiency: 0.97, tension: 100.0,
+                    max_slip: 0.05, slip: 0.0, enabled: true
+                };
+                this.beltSystems.CROSS_BELT = {
+                    motor1_id: 'TOP_MOTOR', motor2_id: 'BOTTOM_MOTOR',
+                    belt_ratio: 1.0, efficiency: 0.92, tension: 100.0,
+                    max_slip: 0.05, slip: 0.0, enabled: true
+                };
+            }
+            
+            generateThermalNoise() {
+                return this.gaussianRandom() * this.thermalNoise * this.noiseLevel;
+            }
+            
+            generateMechanicalNoise() {
+                return this.gaussianRandom() * this.mechanicalNoise * this.noiseLevel;
+            }
+            
+            generateBeltVibration() {
+                return this.gaussianRandom() * this.beltVibration * this.noiseLevel;
+            }
+            
+            generateMotorBrushNoise() {
+                return this.gaussianRandom() * this.motorBrushNoise * this.noiseLevel;
+            }
+            
+            gaussianRandom() {
+                let u = 0, v = 0;
+                while(u === 0) u = Math.random();
+                while(v === 0) v = Math.random();
+                return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            }
+            
+            addComprehensiveNoise(signal, componentType) {
+                if (!this.noiseEnabled) return signal;
+                
+                let noise = 0;
+                noise += this.generateThermalNoise();
+                
+                switch(componentType) {
+                    case 'DC_SOURCE':
+                        noise += this.generateThermalNoise();
+                        noise += (Math.random() - 0.5) * this.quantizationNoise * this.noiseLevel;
+                        break;
+                    case 'AC_SOURCE':
+                        noise += this.generateThermalNoise() * 1.5;
+                        noise += (Math.random() - 0.5) * this.quantizationNoise * this.noiseLevel;
+                        break;
+                    case 'TRANSISTOR_NPN':
+                    case 'TRANSISTOR_PNP':
+                        noise += this.generateThermalNoise() * 0.8;
+                        noise += (Math.random() - 0.5) * this.quantizationNoise * this.noiseLevel * 0.5;
+                        break;
+                    case 'MOTOR':
+                        noise += this.generateMotorBrushNoise();
+                        noise += this.generateThermalNoise() * 2.0;
+                        break;
+                }
+                
+                return signal + noise;
+            }
+            
+            calculateVoltagesAndCurrents() {
+                this.voltages.GND = 0.0;
+                
+                // DC source voltage
+                if (this.components.DC_SOURCE.enabled) {
+                    const noisyVoltage = this.addComprehensiveNoise(this.dcVoltage, 'DC_SOURCE');
+                    this.voltages.DC_BUS = noisyVoltage;
+                }
+                
+                // AC source voltage
+                if (this.components.AC_SOURCE.enabled) {
+                    const rawAC = this.acVoltage * Math.sin(2 * Math.PI * this.acFrequency * this.simulationTime);
+                    const noisyAC = this.addComprehensiveNoise(rawAC, 'AC_SOURCE');
+                    this.voltages.AC_BUS = noisyAC;
+                    
+                    // Transformer output
+                    if (this.components.T1.enabled) {
+                        const cleanSecondary = this.voltages.AC_BUS * this.components.T1.value;
+                        this.voltages.SECONDARY = this.addComprehensiveNoise(cleanSecondary, 'TRANSFORMER');
+                    }
+                }
+                
+                // Calculate component currents
+                Object.keys(this.components).forEach(compId => {
+                    const component = this.components[compId];
+                    if (!component.enabled) return;
+                    
+                    switch(component.type) {
+                        case 'TRANSISTOR_NPN':
+                            const baseCurrent = 0.001;
+                            const collectorCurrent = baseCurrent * component.value;
+                            component.current = Math.max(0, this.addComprehensiveNoise(collectorCurrent, 'TRANSISTOR_NPN'));
+                            component.voltage = this.voltages.DC_BUS || 0;
+                            break;
+                        case 'TRANSISTOR_PNP':
+                            const pnpBaseCurrent = 0.001;
+                            const emitterCurrent = pnpBaseCurrent * component.value;
+                            component.current = Math.max(0, this.addComprehensiveNoise(emitterCurrent, 'TRANSISTOR_PNP'));
+                            component.voltage = this.voltages.DC_BUS || 0;
+                            break;
+                        case 'MOTOR':
+                            const motorBaseCurrent = 0.3;
+                            component.current = Math.max(0.01, this.addComprehensiveNoise(motorBaseCurrent, 'MOTOR'));
+                            component.voltage = this.voltages.DC_BUS || 0;
+                            break;
+                    }
+                });
+            }
+            
+            calculateMotorDynamics() {
+                const topMotor = this.components.TOP_MOTOR;
+                const bottomMotor = this.components.BOTTOM_MOTOR;
+                
+                // Electrical torque calculation
+                const topElectricalTorque = (topMotor.voltage * topMotor.current) / this.acFrequency;
+                const bottomElectricalTorque = (bottomMotor.voltage * bottomMotor.current) / this.acFrequency;
+                
+                let totalTopTorque = topElectricalTorque;
+                let totalBottomTorque = bottomElectricalTorque;
+                
+                // Belt system effects
+                const topBelt = this.beltSystems.TOP_BELT;
+                if (topBelt.enabled) {
+                    const regenerativeTorque = topElectricalTorque * 0.1;
+                    totalTopTorque += regenerativeTorque * topBelt.efficiency;
+                }
+                
+                const bottomBelt = this.beltSystems.BOTTOM_BELT;
+                if (bottomBelt.enabled) {
+                    const regenerativeTorque = bottomElectricalTorque * 0.1;
+                    totalBottomTorque += regenerativeTorque * bottomBelt.efficiency;
+                }
+                
+                const crossBelt = this.beltSystems.CROSS_BELT;
+                if (crossBelt.enabled) {
+                    const crossTorqueTop = bottomElectricalTorque * 0.05;
+                    const crossTorqueBottom = topElectricalTorque * 0.05;
+                    totalTopTorque += crossTorqueTop * crossBelt.efficiency;
+                    totalBottomTorque += crossTorqueBottom * crossBelt.efficiency;
+                }
+                
+                // RPM calculation
+                const baseTopRpm = Math.max(0, (totalTopTorque * 50) / topMotor.value) * this.motorEfficiency;
+                const baseBottomRpm = Math.max(0, (totalBottomTorque * 50) / bottomMotor.value) * this.motorEfficiency;
+                
+                const mechanicalNoiseTop = this.generateMechanicalNoise();
+                const mechanicalNoiseBottom = this.generateMechanicalNoise();
+                
+                topMotor.rpm = Math.max(0, baseTopRpm + mechanicalNoiseTop);
+                bottomMotor.rpm = Math.max(0, baseBottomRpm + mechanicalNoiseBottom);
+                
+                if (this.noiseEnabled) {
+                    const beltNoiseTop = this.generateBeltVibration();
+                    const beltNoiseBottom = this.generateBeltVibration();
+                    topMotor.rpm += beltNoiseTop;
+                    bottomMotor.rpm += beltNoiseBottom;
+                }
+                
+                topMotor.torque = totalTopTorque;
+                bottomMotor.torque = totalBottomTorque;
+            }
+            
+            updateBeltParameters() {
+                const topMotor = this.components.TOP_MOTOR;
+                const bottomMotor = this.components.BOTTOM_MOTOR;
+                
+                Object.keys(this.beltSystems).forEach(beltId => {
+                    const belt = this.beltSystems[beltId];
+                    
+                    if (beltId === 'TOP_BELT') {
+                        const baseTension = 100.0 + Math.abs(topMotor.rpm) * 0.1;
+                        const tensionNoise = this.noiseEnabled ? this.generateBeltVibration() : 0;
+                        belt.tension = baseTension + Math.abs(tensionNoise);
+                        belt.efficiency = Math.max(0.85, 0.97 - (belt.tension - 100) * 0.001);
+                    } else if (beltId === 'BOTTOM_BELT') {
+                        const baseTension = 100.0 + Math.abs(bottomMotor.rpm) * 0.1;
+                        const tensionNoise = this.noiseEnabled ? this.generateBeltVibration() : 0;
+                        belt.tension = baseTension + Math.abs(tensionNoise);
+                        belt.efficiency = Math.max(0.85, 0.97 - (belt.tension - 100) * 0.001);
+                    } else if (beltId === 'CROSS_BELT') {
+                        const rpmDiff = Math.abs(topMotor.rpm - bottomMotor.rpm);
+                        const slipNoise = this.noiseEnabled ? Math.random() * 0.001 : 0;
+                        belt.slip = Math.min(belt.max_slip, (rpmDiff / 1000.0) + slipNoise);
+                        belt.efficiency = Math.max(0.85, 0.92 - belt.slip);
+                        
+                        if (this.noiseEnabled) {
+                            const cyclicNoise = Math.sin(this.simulationTime * 30) * 0.005;
+                            belt.slip = Math.min(belt.max_slip, belt.slip + Math.abs(cyclicNoise));
+                        }
+                    }
+                });
+            }
+            
+            simulateStep() {
+                this.calculateVoltagesAndCurrents();
+                this.calculateMotorDynamics();
+                this.updateBeltParameters();
+                this.simulationTime += this.timeStep;
+            }
+            
+            startSimulation() {
+                this.running = true;
+                this.simulationLoop();
+            }
+            
+            simulationLoop() {
+                if (!this.running) return;
+                
+                this.simulateStep();
+                this.updateDisplay();
+                
+                setTimeout(() => this.simulationLoop(), this.timeStep * 1000);
+            }
+            
+            updateParameter(name, value) {
+                // Debug: Log parameter updates
+                console.log(`Updating parameter: ${name} = ${value}`);
+                
+                // Update circuit parameters
+                switch(name) {
+                    case 'dc_voltage':
+                        if (0 <= value && value <= 24) {
+                            this.dcVoltage = value;
+                            this.components.DC_SOURCE.value = value;
+                        }
+                        break;
+                    case 'ac_voltage':
+                        if (0 <= value && value <= 12) {
+                            this.acVoltage = value;
+                            this.components.AC_SOURCE.value = value;
+                        }
+                        break;
+                    case 'ac_frequency':
+                        if (1 <= value && value <= 1000) {
+                            this.acFrequency = value;
+                        }
+                        break;
+                    case 'top_motor_rpm':
+                        if (0 <= value && value <= 10000) {
+                            this.components.TOP_MOTOR.value = value;
+                        }
+                        break;
+                    case 'bottom_motor_rpm':
+                        if (0 <= value && value <= 10000) {
+                            this.components.BOTTOM_MOTOR.value = value;
+                        }
+                        break;
+                    case 'noise_enabled':
+                        this.noiseEnabled = value;
+                        break;
+                    case 'noise_level':
+                        if (0 <= value && value <= 1) {
+                            this.noiseLevel = value;
+                        }
+                        break;
+                    case 'thermal_noise':
+                        if (0 <= value && value <= 0.01) {
+                            this.thermalNoise = value;
+                        }
+                        break;
+                    case 'mechanical_noise':
+                        if (0 <= value && value <= 10) {
+                            this.mechanicalNoise = value;
+                        }
+                        break;
+                    case 'belt_vibration':
+                        if (0 <= value && value <= 0.1) {
+                            this.beltVibration = value;
+                        }
+                        break;
+                    case 'transistor_gain_Q1':
+                    case 'transistor_gain_Q2':
+                    case 'transistor_gain_Q3':
+                        const transId = name.split('_')[2];
+                        if (1 <= value && value <= 500) {
+                            this.components[transId].value = value;
+                        }
+                        break;
+                    default:
+                        // Handle belt and component enabled states
+                        if (name.startsWith('belt_efficiency_')) {
+                            const beltId = name.split('_')[2];
+                            if (0.5 <= value && value <= 1.0 && this.beltSystems[beltId]) {
+                                this.beltSystems[beltId].efficiency = value;
+                            }
+                        } else if (name.startsWith('belt_ratio_')) {
+                            const beltId = name.split('_')[2];
+                            if (0.1 <= value && value <= 5.0 && this.beltSystems[beltId]) {
+                                this.beltSystems[beltId].belt_ratio = value;
+                            }
+                        } else if (name.startsWith('belt_enabled_')) {
+                            const beltId = name.split('_')[2];
+                            if (this.beltSystems[beltId]) {
+                                this.beltSystems[beltId].enabled = value;
+                            }
+                        } else if (name.startsWith('component_enabled_')) {
+                            const compId = name.split('_')[2];
+                            if (this.components[compId]) {
+                                this.components[compId].enabled = value;
+                            }
+                        }
+                        break;
+                }
+            }
+            
+            getStatusDict() {
+                const topMotor = this.components.TOP_MOTOR;
+                const bottomMotor = this.components.BOTTOM_MOTOR;
+                
+                const belts = Object.keys(this.beltSystems).map(beltId => {
+                    const belt = this.beltSystems[beltId];
+                    return {
+                        id: beltId,
+                        enabled: belt.enabled,
+                        ratio: belt.belt_ratio,
+                        efficiency: belt.efficiency,
+                        slip: belt.slip,
+                        tension: belt.tension
+                    };
+                });
+                
+                const transistors = ['Q1', 'Q2', 'Q3'].map(tId => ({
+                    id: tId,
+                    type: this.components[tId].type,
+                    current: this.components[tId].current,
+                    voltage: this.components[tId].voltage
+                }));
+                
+                return {
+                    noise: {
+                        enabled: this.noiseEnabled,
+                        level: this.noiseLevel
+                    },
+                    voltages: {
+                        DC_BUS: this.voltages.DC_BUS || 0.0,
+                        AC_BUS: this.voltages.AC_BUS || 0.0,
+                        SECONDARY: this.voltages.SECONDARY || 0.0
+                    },
+                    motors: {
+                        top: {
+                            rpm: topMotor.rpm,
+                            torque: topMotor.torque,
+                            current: topMotor.current
+                        },
+                        bottom: {
+                            rpm: bottomMotor.rpm,
+                            torque: bottomMotor.torque,
+                            current: bottomMotor.current
+                        }
+                    },
+                    belts: belts,
+                    transistors: transistors
+                };
+            }
+            
+            updateDisplay() {
+                const status = this.getStatusDict();
+                
+                // Update noise status
+                const noiseEl = document.getElementById('noise');
+                if (noiseEl) {
+                    noiseEl.textContent = `enabled: ${status.noise.enabled} | level: ${status.noise.level.toFixed(2)}`;
+                }
+                
+                // Update voltages
+                const voltsEl = document.getElementById('voltages');
+                if (voltsEl) {
+                    voltsEl.textContent = `DC: ${status.voltages.DC_BUS.toFixed(3)} V | AC: ${status.voltages.AC_BUS.toFixed(3)} V | SEC: ${status.voltages.SECONDARY.toFixed(3)} V`;
+                }
+                
+                // Update motors
+                const motorsEl = document.getElementById('motors');
+                const motorTopEl = document.getElementById('motorTop');
+                const motorBottomEl = document.getElementById('motorBottom');
+                
+                if (motorsEl) {
+                    const top = `Top RPM: ${status.motors.top.rpm.toFixed(1)} | tau: ${status.motors.top.torque.toFixed(3)} Nm | I: ${status.motors.top.current.toFixed(3)} A`;
+                    const bottom = `Bottom RPM: ${status.motors.bottom.rpm.toFixed(1)} | tau: ${status.motors.bottom.torque.toFixed(3)} Nm | I: ${status.motors.bottom.current.toFixed(3)} A`;
+                    motorsEl.textContent = top + ' | ' + bottom;
+                }
+                
+                if (motorTopEl) motorTopEl.textContent = status.motors.top.rpm.toFixed(1) + ' RPM';
+                if (motorBottomEl) motorBottomEl.textContent = status.motors.bottom.rpm.toFixed(1) + ' RPM';
+                
+                // Update belts table
+                const beltsEl = document.getElementById('belts');
+                if (beltsEl) {
+                    beltsEl.innerHTML = status.belts.map(belt => 
+                        `<tr><td>${belt.id}</td><td>${belt.efficiency.toFixed(3)}</td><td>${belt.slip.toFixed(3)}</td><td>${belt.tension.toFixed(2)}</td></tr>`
+                    ).join('');
+                }
+                
+                // Update transistors table
+                const trsEl = document.getElementById('transistors');
+                if (trsEl) {
+                    trsEl.innerHTML = status.transistors.map(trans => 
+                        `<tr><td>${trans.id}</td><td>${trans.type}</td><td>${trans.current.toFixed(3)}</td><td>${trans.voltage.toFixed(3)}</td></tr>`
+                    ).join('');
+                }
+            }
+        }
+        
+        // Global simulator instance
+        let simulator;
+        
+        // Initialize simulator when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            simulator = new BeltDrivenCircuitSimulator();
+            
+            // Test all parameters are working
+            console.log('Testing parameter updates...');
+            setTimeout(() => {
+                console.log('DC Voltage test:', simulator.dcVoltage);
+                console.log('Noise Level test:', simulator.noiseLevel);
+                console.log('Top Motor value test:', simulator.components.TOP_MOTOR.value);
+            }, 1000);
+            
+            // Bind auto-submit for range and number inputs
+            document.querySelectorAll('input[type=range], input[type=number]').forEach(input => {
+                input.addEventListener('input', function() {
+                    const form = this.closest('form');
+                    if (form) {
+                        updateParameter(null, form);
+                    }
+                });
+            });
+            
+            // Bind checkbox changes
+            document.querySelectorAll('input[type=checkbox]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const form = this.closest('form');
+                    if (form) {
+                        updateParameter(null, form);
+                    }
+                });
+            });
+        });
+        
+        // Update parameter function
+        function updateParameter(event, form) {
+            if (event) event.preventDefault();
+            
+            const targetForm = form || event.target.closest('form');
+            if (!targetForm || !simulator) return;
+            
+            // Get all inputs from the form
+            const inputs = targetForm.querySelectorAll('input');
+            
+            let updatedCount = 0;
+            inputs.forEach(input => {
+                const name = input.name;
+                const type = input.type;
+                
+                if (type === 'checkbox') {
+                    simulator.updateParameter(name, input.checked);
+                    updatedCount++;
+                } else if (type === 'number' || type === 'range') {
+                    const numValue = parseFloat(input.value);
+                    if (!isNaN(numValue)) {
+                        simulator.updateParameter(name, numValue);
+                        updatedCount++;
+                    }
+                }
+            });
+            
+            // Show visual feedback
+            if (updatedCount > 0) {
+                const statusPill = document.getElementById('statusPill');
+                if (statusPill) {
+                    statusPill.textContent = `Updated ${updatedCount} parameters`;
+                    statusPill.style.background = 'rgba(74,212,168,0.3)';
+                    setTimeout(() => {
+                        statusPill.textContent = 'Standalone Simulator';
+                        statusPill.style.background = 'rgba(90,160,255,0.12)';
+                    }, 1000);
+                }
+            }
+            
+            return false;
+        }
+    </script>
+</body>
+</html>
