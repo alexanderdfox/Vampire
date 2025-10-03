@@ -28,19 +28,19 @@ This is a complete standalone version of the Belt-Driven Self-Referential Circui
 ## How to Use
 
 ### Option 1: Direct File Access
-1. Simply open `belt_driven_circuit.html` in any modern web browser
+1. Simply open `vampire.html` in any modern web browser
 2. The simulation starts automatically
 3. All controls work in real-time
 
 ### Option 2: Local Web Server (Recommended)
 ```bash
 # Navigate to the directory containing the HTML file
-cd /path/to/belt_driven_circuit.html
+cd /path/to/vampire.html
 
 # Start a simple HTTP server
 python3 -m http.server 8080
 
-# Open in browser: http://localhost:8080/belt_driven_circuit.html
+# Open in browser: http://localhost:8080/vampire.html
 ```
 
 ## Interface Overview
