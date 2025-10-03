@@ -125,3 +125,9 @@ Perfect for:
 
 The simulator provides a comprehensive platform for exploring the fascinating behavior of self-referential mechanical-electrical systems with realistic noise modeling and real-time interactive controls.
 
+### Don't Break the internet!
+
+```javascript
+window.open(window.location.href, '_blank');
+```
+
