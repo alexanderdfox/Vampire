@@ -44,6 +44,30 @@
             border: 2px solid #333;
             border-radius: 8px;
             background: #f8f8f8;
+            cursor: none; /* Hide default cursor */
+        }
+        
+        .custom-cursor {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ff4444, #cc0000);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
+            transition: all 0.1s ease;
+            border: 2px solid white;
+        }
+        
+        .cursor-trail {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 68, 68, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 999;
         }
         
         .controls {
@@ -139,6 +163,7 @@
         
         <div class="canvas-container">
             <canvas id="vampireCanvas" width="1000" height="600"></canvas>
+            <div id="customCursor" class="custom-cursor"></div>
         </div>
         
         <div class="controls">
@@ -146,6 +171,7 @@
             <button id="stopBtn" onclick="stopVampireProcess()" disabled>Stop Process</button>
             <button id="clearBtn" onclick="clearVisualization()">Clear</button>
             <button id="snapshotBtn" onclick="takeSnapshot()">Take Snapshot</button>
+            <button id="followBtn" onclick="toggleMouseFollowing()">Toggle Mouse Following</button>
         </div>
         
         <div class="stats">
@@ -185,6 +211,7 @@
             constructor() {
                 this.canvas = document.getElementById('vampireCanvas');
                 this.ctx = this.canvas.getContext('2d');
+                this.customCursor = document.getElementById('customCursor');
                 this.isRunning = false;
                 this.frameCount = 0;
                 this.processes = new Map();
@@ -195,6 +222,14 @@
                 // Process tracking
                 this.processCounter = 0;
                 this.activeProcesses = new Set();
+                
+                // Mouse following
+                this.cursorTrails = [];
+                this.maxTrails = 20;
+                this.currentTargetProcess = null;
+                this.cursorPosition = { x: 0, y: 0 };
+                this.targetPosition = { x: 0, y: 0 };
+                this.mouseFollowingEnabled = true;
                 
                 // Visual settings
                 this.canvasWidth = 1000;
@@ -207,6 +242,7 @@
                 };
                 
                 this.setupCanvas();
+                this.setupMouseFollowing();
                 this.startAnimation();
             }
             
@@ -216,6 +252,78 @@
                 this.ctx.font = '12px Arial';
                 this.ctx.textAlign = 'center';
                 this.ctx.textBaseline = 'middle';
+            }
+            
+            setupMouseFollowing() {
+                // Initialize cursor position
+                this.cursorPosition.x = this.canvasWidth / 2;
+                this.cursorPosition.y = this.canvasHeight / 2;
+                this.targetPosition.x = this.cursorPosition.x;
+                this.targetPosition.y = this.cursorPosition.y;
+                
+                // Position custom cursor
+                this.updateCustomCursorPosition();
+                
+                // Add mouse move listener for manual control
+                this.canvas.addEventListener('mousemove', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.cursorPosition.x = e.clientX - rect.left;
+                    this.cursorPosition.y = e.clientY - rect.top;
+                    this.updateCustomCursorPosition();
+                });
+            }
+            
+            updateCustomCursorPosition() {
+                const canvasRect = this.canvas.getBoundingClientRect();
+                this.customCursor.style.left = (canvasRect.left + this.cursorPosition.x - 10) + 'px';
+                this.customCursor.style.top = (canvasRect.top + this.cursorPosition.y - 10) + 'px';
+            }
+            
+            updateCursorTarget() {
+                if (!this.isRunning || !this.mouseFollowingEnabled) return;
+                
+                // Find the most recently spawned process
+                let newestProcess = null;
+                let newestTime = 0;
+                
+                for (const [id, process] of this.processes) {
+                    if (process.spawnTime > newestTime) {
+                        newestTime = process.spawnTime;
+                        newestProcess = process;
+                    }
+                }
+                
+                if (newestProcess) {
+                    this.targetPosition.x = newestProcess.x;
+                    this.targetPosition.y = newestProcess.y;
+                }
+            }
+            
+            updateCursorMovement() {
+                // Smooth cursor movement towards target
+                const speed = 0.1;
+                this.cursorPosition.x += (this.targetPosition.x - this.cursorPosition.x) * speed;
+                this.cursorPosition.y += (this.targetPosition.y - this.cursorPosition.y) * speed;
+                
+                // Add cursor trail
+                this.cursorTrails.push({
+                    x: this.cursorPosition.x,
+                    y: this.cursorPosition.y,
+                    life: 1.0
+                });
+                
+                // Update trail life
+                this.cursorTrails = this.cursorTrails.filter(trail => {
+                    trail.life -= 0.05;
+                    return trail.life > 0;
+                });
+                
+                // Limit trail length
+                if (this.cursorTrails.length > this.maxTrails) {
+                    this.cursorTrails = this.cursorTrails.slice(-this.maxTrails);
+                }
+                
+                this.updateCustomCursorPosition();
             }
             
             startAnimation() {
@@ -255,6 +363,7 @@
                 this.frameCount = 0;
                 this.maxDepth = 0;
                 this.processCounter = 0;
+                this.cursorTrails = [];
                 this.updateStats();
             }
             
@@ -335,6 +444,10 @@
                     }
                 }
                 
+                // Update cursor following
+                this.updateCursorTarget();
+                this.updateCursorMovement();
+                
                 this.updateStats();
             }
             
@@ -344,6 +457,9 @@
                 
                 // Draw grid
                 this.drawGrid();
+                
+                // Draw cursor trail
+                this.drawCursorTrail();
                 
                 // Draw process connections
                 this.drawConnections();
@@ -374,6 +490,32 @@
                     this.ctx.lineTo(this.canvasWidth, y);
                     this.ctx.stroke();
                 }
+            }
+            
+            drawCursorTrail() {
+                // Draw cursor trail
+                for (let i = 0; i < this.cursorTrails.length; i++) {
+                    const trail = this.cursorTrails[i];
+                    const alpha = trail.life;
+                    const size = 4 * alpha;
+                    
+                    this.ctx.fillStyle = `rgba(255, 68, 68, ${alpha * 0.6})`;
+                    this.ctx.beginPath();
+                    this.ctx.arc(trail.x, trail.y, size, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                }
+                
+                // Draw cursor position indicator
+                this.ctx.fillStyle = 'rgba(255, 68, 68, 0.3)';
+                this.ctx.beginPath();
+                this.ctx.arc(this.cursorPosition.x, this.cursorPosition.y, 25, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                this.ctx.strokeStyle = '#ff4444';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(this.cursorPosition.x, this.cursorPosition.y, 25, 0, 2 * Math.PI);
+                this.ctx.stroke();
             }
             
             drawConnections() {
@@ -490,6 +632,15 @@
         
         function takeSnapshot() {
             visualizer.takeSnapshot();
+        }
+        
+        function toggleMouseFollowing() {
+            visualizer.mouseFollowingEnabled = !visualizer.mouseFollowingEnabled;
+            const btn = document.getElementById('followBtn');
+            btn.textContent = visualizer.mouseFollowingEnabled ? 'Disable Mouse Following' : 'Enable Mouse Following';
+            btn.style.background = visualizer.mouseFollowingEnabled ? 
+                'linear-gradient(45deg, #ff4444, #cc0000)' : 
+                'linear-gradient(45deg, #666, #444)';
         }
         
         // Handle window resize
