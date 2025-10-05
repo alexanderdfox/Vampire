@@ -221,6 +221,12 @@
             <button id="snapshotBtn" onclick="takeSnapshot()">Take Snapshot</button>
             <button id="followBtn" onclick="toggleMouseFollowing()">Toggle Mouse Following</button>
             <button id="bresenhamBtn" onclick="toggleBresenhamCircles()">Toggle Bresenham Circles</button>
+            <button id="sineBtn" onclick="toggleSineWaves()">Toggle Sine Waves</button>
+            <button id="audioBtn" onclick="toggleAudio()">Enable Audio</button>
+            <label style="display:flex;align-items:center;gap:6px;color:#ccc;">
+                Volume
+                <input id="audioVol" type="range" min="0" max="1" step="0.01" value="0.12" onchange="setAudioVolume(this.value)" />
+            </label>
         </div>
         
         <div class="controls">
@@ -1240,6 +1246,20 @@
                 this.circleRadius = 8;
                 this.circleSpacing = 20;
                 
+                // Sine wave settings
+                this.sineWavesEnabled = true;
+                this.sineBaseHz = 1.0; // base temporal frequency in Hz
+                this.sineAmplitudeBase = 8; // base pixel amplitude
+                this.sineSpatialCyclesBase = 1.5; // base cycles per segment
+
+                // Audio synthesis (Web Audio) driven by sine segments
+                this.audioEnabled = false;
+                this.audioContext = null;
+                this.masterGain = null;
+                this.audioVolume = 0.12; // 0..1
+                this.sineVoices = []; // [{osc, gain}]
+                this.maxSineVoices = 24;
+                
                 // Initialize Chaos Mathematics
                 this.chaosMath = new ChaosMath();
                 
@@ -1464,6 +1484,8 @@
                 this.isRunning = false;
                 document.getElementById('startBtn').disabled = false;
                 document.getElementById('stopBtn').disabled = true;
+                // Mute audio when stopping
+                this.muteAllVoices();
             }
             
             clearVisualization() {
@@ -2341,6 +2363,11 @@
                     }
                 }
                 this.ctx.stroke();
+
+                // Draw animated sine waves along the path segments
+                if (this.sineWavesEnabled) {
+                    this.drawSineWavesOnPath(pathPoints);
+                }
                 
                 // Draw Collatz value indicators
                 for (let i = 0; i < pathPoints.length; i += 3) {
@@ -2360,6 +2387,115 @@
                 
                 // Draw Collatz sequence as branching paths
                 this.drawCollatzBranches(pathPoints, collatzSequence);
+            }
+
+            drawSineWavesOnPath(pathPoints) {
+                const time = Date.now() * 0.001; // seconds
+                // Iterate adjacent pairs (segments)
+                for (let i = 0; i < pathPoints.length - 1; i++) {
+                    const p0 = pathPoints[i];
+                    const p1 = pathPoints[i + 1];
+                    const dx = p1.x - p0.x;
+                    const dy = p1.y - p0.y;
+                    const len = Math.max(1, Math.hypot(dx, dy));
+                    const nx = -dy / len; // unit normal x
+                    const ny = dx / len;  // unit normal y
+                    
+                    // Per-segment temporal frequency (Hz) — varies by index and time
+                    const baseHz = this.sineBaseHz; // user base
+                    const hz = baseHz + 0.35 * Math.sin(i * 0.77 + time * 0.6) + (i % 5) * 0.1;
+                    const omegaT = 2 * Math.PI * hz * time;
+                    
+                    // Spatial cycles along the segment
+                    const spatialCycles = this.sineSpatialCyclesBase + (i % 4) * 0.4;
+                    
+                    // Amplitude scaled by length but capped
+                    const amplitude = Math.min(18, this.sineAmplitudeBase + len * 0.04);
+                    
+                    // Steps based on segment length
+                    const steps = Math.max(8, Math.floor(len / 5));
+                    
+                    // Fixed purple color for sine waves
+                    this.ctx.strokeStyle = 'hsla(270, 90%, 65%, 0.6)';
+                    this.ctx.lineWidth = 1.8;
+                    this.ctx.beginPath();
+                    for (let s = 0; s <= steps; s++) {
+                        const t = s / steps; // 0..1 along segment
+                        const x = p0.x + dx * t;
+                        const y = p0.y + dy * t;
+                        const phase = 2 * Math.PI * spatialCycles * t + omegaT;
+                        const off = amplitude * Math.sin(phase);
+                        const wx = x + nx * off;
+                        const wy = y + ny * off;
+                        if (s === 0) this.ctx.moveTo(wx, wy); else this.ctx.lineTo(wx, wy);
+                    }
+                    this.ctx.stroke();
+
+                    // Drive a limited pool of audio voices by segment frequency
+                    if (this.audioEnabled) {
+                        this.updateAudioForSegment(i, hz);
+                    }
+                }
+            }
+
+            muteAllVoices() {
+                if (!this.audioContext || !this.sineVoices || !this.sineVoices.length) return;
+                for (const v of this.sineVoices) {
+                    if (v && v.gain && v.gain.gain) {
+                        try {
+                            v.gain.gain.setTargetAtTime(0.0, this.audioContext.currentTime, 0.03);
+                        } catch (e) {
+                            v.gain.gain.value = 0.0;
+                        }
+                    }
+                }
+            }
+
+            ensureAudio() {
+                if (this.audioContext) return;
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                this.audioContext = new AudioCtx();
+                this.masterGain = this.audioContext.createGain();
+                this.masterGain.gain.value = this.audioVolume;
+                this.masterGain.connect(this.audioContext.destination);
+                // Pre-create voice pool
+                this.sineVoices = [];
+                for (let i = 0; i < this.maxSineVoices; i++) {
+                    const osc = this.audioContext.createOscillator();
+                    const gain = this.audioContext.createGain();
+                    osc.type = 'sine';
+                    // Start silent
+                    gain.gain.value = 0.0;
+                    osc.frequency.value = 220;
+                    osc.connect(gain);
+                    gain.connect(this.masterGain);
+                    osc.start();
+                    this.sineVoices.push({ osc, gain, inUse: false, lastIndex: -1 });
+                }
+            }
+
+            updateAudioForSegment(segIndex, hz) {
+                this.ensureAudio();
+                // Map segment index to a stable voice slot
+                const voiceIdx = segIndex % this.maxSineVoices;
+                const voice = this.sineVoices[voiceIdx];
+                voice.inUse = true;
+                voice.lastIndex = segIndex;
+                // Map low visual Hz (0.5..~3) to musical frequency range (e.g., 110..880 Hz)
+                const freq = 110 * Math.pow(2, hz * 1.2); // exponential mapping
+                // Smoothly target frequency
+                if (voice.osc.frequency.setTargetAtTime) {
+                    voice.osc.frequency.setTargetAtTime(freq, this.audioContext.currentTime, 0.05);
+                } else {
+                    voice.osc.frequency.value = freq;
+                }
+                // Set per-voice gain softly based on segment length/hz
+                const level = Math.min(0.18, 0.06 + hz * 0.04);
+                if (voice.gain.gain.setTargetAtTime) {
+                    voice.gain.gain.setTargetAtTime(this.audioEnabled ? level : 0.0, this.audioContext.currentTime, 0.05);
+                } else {
+                    voice.gain.gain.value = this.audioEnabled ? level : 0.0;
+                }
             }
             
             drawCollatzBranches(pathPoints, collatzSequence) {
@@ -3439,6 +3575,15 @@
                 'linear-gradient(45deg, #ff4444, #cc0000)' : 
                 'linear-gradient(45deg, #666, #444)';
         }
+
+        function toggleSineWaves() {
+            visualizer.sineWavesEnabled = !visualizer.sineWavesEnabled;
+            const btn = document.getElementById('sineBtn');
+            btn.textContent = visualizer.sineWavesEnabled ? 'Disable Sine Waves' : 'Enable Sine Waves';
+            btn.style.background = visualizer.sineWavesEnabled ? 
+                'linear-gradient(45deg, #ff4444, #cc0000)' : 
+                'linear-gradient(45deg, #666, #444)';
+        }
         
         function toggleChaosComponent(componentName) {
             visualizer.chaosMath.toggleComponent(componentName);
@@ -3459,6 +3604,40 @@
             btn.style.background = isEnabled ? 
                 'linear-gradient(45deg, #ff4444, #cc0000)' : 
                 'linear-gradient(45deg, #666, #444)';
+        }
+
+        function toggleAudio() {
+            visualizer.audioEnabled = !visualizer.audioEnabled;
+            if (visualizer.audioEnabled) {
+                visualizer.ensureAudio();
+                if (visualizer.audioContext.state === 'suspended') {
+                    visualizer.audioContext.resume();
+                }
+            } else if (visualizer.masterGain) {
+                // Mute all voices quickly
+                for (const v of visualizer.sineVoices) {
+                    if (v && v.gain && v.gain.gain && visualizer.audioContext) {
+                        v.gain.gain.setTargetAtTime(0.0, visualizer.audioContext.currentTime, 0.05);
+                    }
+                }
+            }
+            const btn = document.getElementById('audioBtn');
+            btn.textContent = visualizer.audioEnabled ? 'Disable Audio' : 'Enable Audio';
+            btn.style.background = visualizer.audioEnabled ? 
+                'linear-gradient(45deg, #ff4444, #cc0000)' : 
+                'linear-gradient(45deg, #666, #444)';
+        }
+
+        function setAudioVolume(val) {
+            const v = Math.max(0, Math.min(1, parseFloat(val)));
+            visualizer.audioVolume = v;
+            if (visualizer.masterGain) {
+                if (visualizer.masterGain.gain.setTargetAtTime && visualizer.audioContext) {
+                    visualizer.masterGain.gain.setTargetAtTime(v, visualizer.audioContext.currentTime, 0.05);
+                } else {
+                    visualizer.masterGain.gain.value = v;
+                }
+            }
         }
         
         // π Calculation Functions
