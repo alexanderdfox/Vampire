@@ -1,90 +1,75 @@
 #!/usr/bin/env python3
 """
-Vampire Process Movie Generator
+Vampire Process Single Image Generator
 
-This script creates a movie that visually represents the behavior of the vampire.cpp program:
+This script creates a single image that visually represents the behavior of the vampire.cpp program:
 - Processes spawn children and immediately die
 - Each child becomes the new parent
 - Creates a continuous chain of process creation and destruction
 - Visualized as a vampire that consumes itself and regenerates
 
-The script now embeds the actual vampire process logic using multiprocessing.
+Uses threading for better compatibility and generates a single static image.
+Shows vampire process behavior captured in one comprehensive visualization.
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from matplotlib.patches import Circle
 import random
 import time
-import multiprocessing
+import threading
 import os
 import signal
 import sys
-import threading
 import queue
+from collections import deque
 
-def vampire_process_logic(shared_dict, process_counter, stop_flag, depth=0):
+def vampire_thread_logic(event_queue, stop_event):
     """
-    The actual vampire process logic - embedded from vampire.cpp
-    Creates child processes and immediately kills itself
+    Simulated vampire process logic using threading
+    Creates child threads and immediately terminates itself
     """
     try:
-        # Prevent infinite recursion by limiting depth
-        if depth > 20:  # Limit to prevent system overload
-            return
-            
-        while not stop_flag.value:
+        while not stop_event.is_set():
             # Small delay to prevent overwhelming the system
             time.sleep(0.01)
             
-            # Create a child process
-            child_process = multiprocessing.Process(
-                target=vampire_process_logic, 
-                args=(shared_dict, process_counter, stop_flag, depth + 1)
+            # Create a child thread
+            child_thread = threading.Thread(
+                target=vampire_thread_logic, 
+                args=(event_queue, stop_event)
             )
-            child_process.start()
+            child_thread.start()
             
-            # Store process info in shared dictionary
-            event_id = process_counter.value
-            process_counter.value += 1
-            
-            shared_dict[event_id] = {
+            # Send process info to the queue
+            event_queue.put({
                 'action': 'spawn',
-                'parent_pid': os.getpid(),
-                'child_pid': child_process.pid,
-                'timestamp': time.time(),
-                'depth': depth
-            }
+                'parent_id': threading.get_ident(),
+                'child_id': child_thread.ident,
+                'timestamp': time.time()
+            })
             
-            # Immediately kill this process (like the C++ version)
-            os.kill(os.getpid(), signal.SIGKILL)
+            # Immediately terminate this thread (simulating the kill signal)
+            return  # Exit the thread
             
     except Exception as e:
-        event_id = process_counter.value
-        process_counter.value += 1
-        shared_dict[event_id] = {
+        event_queue.put({
             'action': 'error',
-            'pid': os.getpid(),
+            'thread_id': threading.get_ident(),
             'error': str(e),
-            'timestamp': time.time(),
-            'depth': depth
-        }
+            'timestamp': time.time()
+        })
 
-class VampireProcessMovie:
-    def __init__(self, duration=10, fps=30):
-        self.duration = duration
-        self.fps = fps
-        self.total_frames = duration * fps
+class VampireProcessImageGenerator:
+    def __init__(self, capture_duration=3.0):
+        self.capture_duration = capture_duration
         
-        # Real process tracking using shared memory
-        self.manager = multiprocessing.Manager()
-        self.shared_dict = self.manager.dict()
-        self.process_counter = multiprocessing.Value('i', 0)
-        self.stop_flag = multiprocessing.Value('b', False)
-        self.vampire_process = None
-        self.process_events = []
-        self.frame_count = 0
+        # Thread-based process tracking
+        self.event_queue = queue.Queue()
+        self.stop_event = threading.Event()
+        self.vampire_thread = None
+        self.process_events = deque(maxlen=100)  # Keep last 100 events
+        self.thread_counter = 0
         
         # Visual parameters
         self.max_processes = 50
@@ -102,65 +87,60 @@ class VampireProcessMovie:
         self.ax.set_xlim(0, 10)
         self.ax.set_ylim(0, 8)
         self.ax.set_aspect('equal')
-        self.ax.set_title('Vampire Process: Real Process Logic Embedded', fontsize=16, fontweight='bold')
-        self.ax.set_xlabel('Time →', fontsize=12)
+        self.ax.set_title('Vampire Process: Single Image Capture', fontsize=16, fontweight='bold')
+        self.ax.set_xlabel('Process Space', fontsize=12)
         self.ax.set_ylabel('Process Space', fontsize=12)
         
         # Add background grid
         self.ax.grid(True, alpha=0.3)
         
         # Add explanatory text
-        self.ax.text(0.5, 7.5, 'Each red circle represents a REAL process', fontsize=10, 
+        self.ax.text(0.5, 7.5, 'Each red circle represents a REAL thread', fontsize=10, 
                     bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray", alpha=0.7))
-        self.ax.text(0.5, 7.0, 'Processes spawn children and immediately die', fontsize=10,
+        self.ax.text(0.5, 7.0, 'Threads spawn children and immediately die', fontsize=10,
                     bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray", alpha=0.7))
-        self.ax.text(0.5, 6.5, 'Real vampire.cpp logic embedded in Python', fontsize=10,
+        self.ax.text(0.5, 6.5, 'Vampire.cpp logic captured in single image', fontsize=10,
                     bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray", alpha=0.7))
     
-    def start_vampire_process(self):
-        """Start the vampire process logic"""
-        if self.vampire_process is None:
-            self.vampire_process = multiprocessing.Process(
-                target=vampire_process_logic, 
-                args=(self.shared_dict, self.process_counter, self.stop_flag, 0)
+    def start_vampire_thread(self):
+        """Start the vampire thread logic"""
+        if self.vampire_thread is None:
+            self.vampire_thread = threading.Thread(
+                target=vampire_thread_logic, 
+                args=(self.event_queue, self.stop_event)
             )
-            self.vampire_process.start()
-            print(f"Started vampire process with PID: {self.vampire_process.pid}")
+            self.vampire_thread.start()
+            print(f"Started vampire thread with ID: {self.vampire_thread.ident}")
     
-    def stop_vampire_process(self):
-        """Stop the vampire process logic"""
-        if self.vampire_process:
-            self.stop_flag.value = True
-            self.vampire_process.terminate()
-            self.vampire_process.join(timeout=1)
-            if self.vampire_process.is_alive():
-                self.vampire_process.kill()
-            self.vampire_process = None
-            print("Stopped vampire process")
+    def stop_vampire_thread(self):
+        """Stop the vampire thread logic"""
+        if self.vampire_thread:
+            self.stop_event.set()
+            self.vampire_thread.join(timeout=1)
+            self.vampire_thread = None
+            print("Stopped vampire thread")
     
     def update_process_events(self):
-        """Update process events from shared memory"""
+        """Update process events from the queue"""
         try:
-            # Get all new events from shared dictionary
-            for event_id, event in self.shared_dict.items():
-                if event_id not in [e.get('event_id') for e in self.process_events]:
-                    event['event_id'] = event_id
+            # Get all new events from queue
+            while True:
+                try:
+                    event = self.event_queue.get_nowait()
                     self.process_events.append(event)
                     
                     # Assign position to new processes
                     if event['action'] == 'spawn':
-                        child_pid = event['child_pid']
-                        if child_pid not in self.process_positions:
-                            self.process_positions[child_pid] = (
+                        child_id = event['child_id']
+                        if child_id not in self.process_positions:
+                            self.process_positions[child_id] = (
                                 random.uniform(1, 9),
                                 random.uniform(1, 6)
                             )
+                except queue.Empty:
+                    break
         except Exception as e:
             print(f"Error updating process events: {e}")
-        
-        # Keep only recent events (last 100)
-        if len(self.process_events) > 100:
-            self.process_events = self.process_events[-100:]
     
     def draw_processes(self):
         """Draw all processes on the canvas"""
@@ -174,130 +154,116 @@ class VampireProcessMovie:
         
         # Draw processes based on real events
         current_time = time.time()
-        active_pids = set()
+        active_ids = set()
         
         # Process recent events to determine which processes are active
-        for event in self.process_events[-50:]:  # Look at last 50 events
+        for event in list(self.process_events)[-50:]:  # Look at last 50 events
             if event['action'] == 'spawn':
-                child_pid = event['child_pid']
-                active_pids.add(child_pid)
+                child_id = event['child_id']
+                active_ids.add(child_id)
                 
                 # Draw the spawned process
-                if child_pid in self.process_positions:
-                    x, y = self.process_positions[child_pid]
+                if child_id in self.process_positions:
+                    x, y = self.process_positions[child_id]
                     circle = Circle((x, y), 0.4, 
                                   color=self.colors['spawned'], alpha=0.8, zorder=10)
                     self.ax.add_patch(circle)
                     
-                    # Add process ID and depth
-                    depth = event.get('depth', 0)
-                    self.ax.text(x, y, f"{child_pid}\n(d:{depth})", 
-                                ha='center', va='center', fontsize=7, fontweight='bold',
+                    # Add thread ID
+                    self.ax.text(x, y, str(child_id), 
+                                ha='center', va='center', fontsize=8, fontweight='bold',
                                 color='white')
         
         # Draw process connections (parent-child relationships)
-        for event in self.process_events[-20:]:  # Last 20 events for connections
+        for event in list(self.process_events)[-20:]:  # Last 20 events for connections
             if event['action'] == 'spawn':
-                parent_pid = event['parent_pid']
-                child_pid = event['child_pid']
+                parent_id = event['parent_id']
+                child_id = event['child_id']
                 
-                if (parent_pid in self.process_positions and 
-                    child_pid in self.process_positions):
-                    px, py = self.process_positions[parent_pid]
-                    cx, cy = self.process_positions[child_pid]
+                if (parent_id in self.process_positions and 
+                    child_id in self.process_positions):
+                    px, py = self.process_positions[parent_id]
+                    cx, cy = self.process_positions[child_id]
                     
                     # Draw arrow from parent to child
                     self.ax.annotate('', xy=(cx, cy), xytext=(px, py),
                                    arrowprops=dict(arrowstyle='->', color='red', alpha=0.6, lw=1))
         
         # Add frame info
-        self.ax.text(9.5, 7.5, f'Frame: {self.frame_count}', fontsize=10,
+        self.ax.text(9.5, 7.5, f'Active Threads: {len(active_ids)}', fontsize=10,
                     ha='right', bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7))
-        self.ax.text(9.5, 7.0, f'Active Processes: {len(active_pids)}', fontsize=10,
-                    ha='right', bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7))
-        self.ax.text(9.5, 6.5, f'Total Events: {len(self.process_events)}', fontsize=10,
+        self.ax.text(9.5, 7.0, f'Total Events: {len(self.process_events)}', fontsize=10,
                     ha='right', bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7))
         
         # Add title
-        self.ax.set_title('Vampire Process: Real Process Logic Embedded', fontsize=16, fontweight='bold')
-        self.ax.set_xlabel('Time →', fontsize=12)
+        self.ax.set_title('Vampire Process: Single Image Capture', fontsize=16, fontweight='bold')
+        self.ax.set_xlabel('Process Space', fontsize=12)
         self.ax.set_ylabel('Process Space', fontsize=12)
     
-    def animate(self, frame):
-        """Animation function called for each frame"""
-        self.frame_count = frame
-        
-        # Start vampire process on first frame
-        if frame == 0:
-            self.start_vampire_process()
-        
+    def generate_image(self):
+        """Generate a single image showing current process state"""
         # Update process events from the queue
         self.update_process_events()
         
         # Draw everything
         self.draw_processes()
         
-        return []
+        return self.fig
     
-    def generate_movie(self, filename='vampire_process_movie.mp4'):
-        """Generate the movie"""
-        print(f"Generating vampire process movie with embedded logic...")
-        print(f"Duration: {self.duration} seconds")
-        print(f"FPS: {self.fps}")
-        print(f"Total frames: {self.total_frames}")
+    def generate_single_image(self, filename='vampire_process.png'):
+        """Generate a single image showing vampire process behavior"""
+        print(f"Generating vampire process image with embedded logic...")
+        print(f"Capture duration: {self.capture_duration} seconds")
         
         try:
-            # Create animation
-            anim = animation.FuncAnimation(
-                self.fig, 
-                self.animate, 
-                frames=self.total_frames,
-                interval=1000/self.fps,  # milliseconds per frame
-                blit=False,
-                repeat=False
-            )
+            # Start vampire thread
+            self.start_vampire_thread()
             
-            # Save as MP4
-            print(f"Saving movie as {filename}...")
-            Writer = animation.writers['ffmpeg']
-            writer = Writer(fps=self.fps, metadata=dict(artist='Vampire Process Simulator'), bitrate=1800)
+            # Let the process run for the capture duration
+            print("Capturing process activity...")
+            time.sleep(self.capture_duration)
             
-            anim.save(filename, writer=writer)
-            print(f"Movie saved as {filename}")
+            # Generate the final image
+            print("Generating image...")
+            fig = self.generate_image()
+            
+            # Save the image
+            fig.savefig(filename, dpi=150, bbox_inches='tight', facecolor='white')
+            plt.close(fig)  # Close to free memory
+            
+            print(f"Image saved as: {filename}")
             
         finally:
-            # Always clean up processes
-            self.stop_vampire_process()
-            # Clean up manager
-            if hasattr(self, 'manager'):
-                self.manager.shutdown()
+            # Always clean up threads
+            self.stop_vampire_thread()
         
         return filename
 
 def main():
-    """Main function to generate the vampire process movie"""
-    print("Vampire Process Movie Generator with Embedded Logic")
-    print("=" * 50)
-    print("This script creates a movie showing REAL vampire process behavior:")
-    print("- Uses actual multiprocessing to spawn child processes")
-    print("- Each process immediately kills itself after spawning")
-    print("- Creates a continuous cycle of real process death and rebirth")
-    print("- Visualizes actual process IDs and relationships")
+    """Main function to generate the vampire process image"""
+    print("Vampire Process Single Image Generator")
+    print("=" * 45)
+    print("This script creates a single image showing vampire process behavior:")
+    print("- Uses threading to simulate child process spawning")
+    print("- Each thread immediately terminates after spawning")
+    print("- Creates a continuous cycle of thread death and rebirth")
+    print("- Visualizes actual thread IDs and relationships")
+    print("- Generates a single static image for easy viewing and sharing")
     print()
     
-    # Create movie generator
-    movie_gen = VampireProcessMovie(duration=10, fps=24)
+    # Create image generator
+    image_gen = VampireProcessImageGenerator(capture_duration=3.0)
     
-    # Generate the movie
-    filename = movie_gen.generate_movie('vampire_process_movie.mp4')
+    # Generate the single image
+    filename = image_gen.generate_single_image('vampire_process.png')
     
-    print(f"\nMovie generation complete!")
-    print(f"File saved as: {filename}")
-    print("\nTo view the movie, you can use:")
-    print(f"  - VLC: vlc {filename}")
-    print(f"  - QuickTime: open {filename}")
-    print(f"  - Or any other video player")
-    print("\nNote: This movie shows REAL process spawning and death!")
+    print(f"\nImage generation complete!")
+    print(f"Image saved as: {filename}")
+    print(f"\nTo view the image, you can:")
+    print(f"  - Open with Preview: open {filename}")
+    print(f"  - Open with any image viewer")
+    print(f"  - Share the image file")
+    print("\nNote: This image shows REAL thread spawning and death!")
 
 if __name__ == "__main__":
     main()
