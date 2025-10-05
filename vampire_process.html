@@ -252,6 +252,25 @@
             <button id="resetInfiniteBtn" onclick="resetInfinitePi()">Reset</button>
         </div>
         
+        <div class="controls">
+            <h3 style="color: #ff4444; margin: 10px 0;">Collatz Conjecture</h3>
+            <button id="calculateCollatzBtn" onclick="calculateCollatz()">Calculate Collatz</button>
+            <button id="calculateCollatzChaosBtn" onclick="calculateCollatzChaos()">Collatz Chaos</button>
+            <button id="calculateCollatzStatsBtn" onclick="calculateCollatzStats()">Collatz Statistics</button>
+            <button id="calculateCollatzTreeBtn" onclick="calculateCollatzTree()">Collatz Tree</button>
+            <button id="calculateCollatzLorenzBtn" onclick="calculateCollatzLorenz()">Collatz-Lorenz</button>
+            <input type="number" id="collatzStartValue" value="27" min="1" max="1000000">
+            <label for="collatzStartValue">Start Value</label>
+        </div>
+        
+        <div class="controls">
+            <h3 style="color: #ff4444; margin: 10px 0;">Vampire Process Mode</h3>
+            <button id="hybridPiCollatzBtn" onclick="toggleHybridPiCollatz()">Enable Hybrid π-Collatz</button>
+            <button id="piVampireBtn" onclick="togglePiVampire()">π Vampire</button>
+            <button id="collatzVampireBtn" onclick="toggleCollatzVampire()">Collatz Vampire</button>
+            <button id="traditionalVampireBtn" onclick="toggleTraditionalVampire()">Traditional Vampire</button>
+        </div>
+        
         <div class="stats">
             <div class="stat-card">
                 <div class="stat-value" id="activeProcesses">0</div>
@@ -324,6 +343,30 @@
             <div class="stat-card">
                 <div class="stat-value" id="borweinQuarticPi">0.000000</div>
                 <div class="stat-label">Borwein Quartic π</div>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <h3 style="color: #ff4444; margin: 10px 0; grid-column: 1 / -1;">Collatz Conjecture Statistics</h3>
+            <div class="stat-card">
+                <div class="stat-value" id="collatzStartValue">27</div>
+                <div class="stat-label">Start Value</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="collatzSteps">0</div>
+                <div class="stat-label">Steps to 1</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="collatzMaxValue">0</div>
+                <div class="stat-label">Max Value</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="collatzTotalSequences">0</div>
+                <div class="stat-label">Total Sequences</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="collatzMaxSteps">0</div>
+                <div class="stat-label">Max Steps</div>
             </div>
         </div>
         
@@ -937,6 +980,230 @@
                     state: {a, b, t, p}
                 };
             }
+            
+            // Collatz Conjecture Methods
+            
+            // Basic Collatz sequence calculation
+            calculateCollatzSequence(startValue, maxSteps = 1000) {
+                const sequence = [startValue];
+                let current = startValue;
+                let steps = 0;
+                
+                while (current !== 1 && steps < maxSteps) {
+                    if (current % 2 === 0) {
+                        current = current / 2;
+                    } else {
+                        current = 3 * current + 1;
+                    }
+                    sequence.push(current);
+                    steps++;
+                }
+                
+                return {
+                    sequence: sequence,
+                    steps: steps,
+                    reachedOne: current === 1,
+                    maxValue: Math.max(...sequence),
+                    finalValue: current
+                };
+            }
+            
+            // Collatz sequence with chaos visualization
+            calculateCollatzChaos(startValue, maxSteps = 1000) {
+                const sequence = [startValue];
+                const chaosPoints = [];
+                let current = startValue;
+                let steps = 0;
+                
+                // Use golden ratio for chaotic positioning
+                const phi = this.phi;
+                let angle = 0;
+                let radius = 50;
+                
+                while (current !== 1 && steps < maxSteps) {
+                    // Add chaos to the sequence visualization
+                    const chaosX = Math.sin(angle) * radius;
+                    const chaosY = Math.cos(angle) * radius;
+                    
+                    chaosPoints.push({
+                        x: chaosX,
+                        y: chaosY,
+                        value: current,
+                        step: steps,
+                        angle: angle,
+                        radius: radius
+                    });
+                    
+                    // Collatz step
+                    if (current % 2 === 0) {
+                        current = current / 2;
+                        angle += Math.PI / phi; // Golden ratio angle increment
+                        radius *= 0.98; // Slight contraction
+                    } else {
+                        current = 3 * current + 1;
+                        angle += Math.PI * phi; // Larger angle increment for odd
+                        radius *= 1.02; // Slight expansion
+                    }
+                    
+                    sequence.push(current);
+                    steps++;
+                }
+                
+                return {
+                    sequence: sequence,
+                    chaosPoints: chaosPoints,
+                    steps: steps,
+                    reachedOne: current === 1,
+                    maxValue: Math.max(...sequence),
+                    finalValue: current
+                };
+            }
+            
+            // Collatz tree structure (reverse Collatz)
+            calculateCollatzTree(maxDepth = 10, maxNodes = 1000) {
+                const tree = new Map();
+                const visited = new Set();
+                const queue = [{value: 1, depth: 0, parent: null}];
+                let nodeCount = 0;
+                
+                while (queue.length > 0 && nodeCount < maxNodes) {
+                    const node = queue.shift();
+                    const value = node.value;
+                    const depth = node.depth;
+                    
+                    if (visited.has(value) || depth > maxDepth) continue;
+                    
+                    visited.add(value);
+                    nodeCount++;
+                    
+                    // Find predecessors (reverse Collatz)
+                    const predecessors = [];
+                    
+                    // Even predecessor: 2 * value
+                    predecessors.push(2 * value);
+                    
+                    // Odd predecessor: (value - 1) / 3 (if valid)
+                    if ((value - 1) % 3 === 0 && value > 1) {
+                        const oddPredecessor = (value - 1) / 3;
+                        if (oddPredecessor > 0 && oddPredecessor % 2 === 1) {
+                            predecessors.push(oddPredecessor);
+                        }
+                    }
+                    
+                    tree.set(value, {
+                        value: value,
+                        depth: depth,
+                        parent: node.parent,
+                        predecessors: predecessors,
+                        children: []
+                    });
+                    
+                    // Add predecessors to queue
+                    for (const pred of predecessors) {
+                        if (!visited.has(pred)) {
+                            queue.push({value: pred, depth: depth + 1, parent: value});
+                        }
+                    }
+                }
+                
+                return {
+                    tree: tree,
+                    maxDepth: maxDepth,
+                    nodeCount: nodeCount,
+                    rootValue: 1
+                };
+            }
+            
+            // Collatz statistics and analysis
+            calculateCollatzStatistics(startRange = 1, endRange = 1000) {
+                const statistics = {
+                    totalNumbers: endRange - startRange + 1,
+                    sequences: [],
+                    maxSteps: 0,
+                    maxValue: 0,
+                    averageSteps: 0,
+                    stepDistribution: new Map(),
+                    valueDistribution: new Map(),
+                    convergenceTime: new Map()
+                };
+                
+                let totalSteps = 0;
+                
+                for (let i = startRange; i <= endRange; i++) {
+                    const result = this.calculateCollatzSequence(i, 10000);
+                    statistics.sequences.push(result);
+                    
+                    // Update statistics
+                    statistics.maxSteps = Math.max(statistics.maxSteps, result.steps);
+                    statistics.maxValue = Math.max(statistics.maxValue, result.maxValue);
+                    totalSteps += result.steps;
+                    
+                    // Step distribution
+                    const stepKey = Math.floor(result.steps / 10) * 10;
+                    statistics.stepDistribution.set(stepKey, (statistics.stepDistribution.get(stepKey) || 0) + 1);
+                    
+                    // Value distribution
+                    const valueKey = Math.floor(result.maxValue / 100) * 100;
+                    statistics.valueDistribution.set(valueKey, (statistics.valueDistribution.get(valueKey) || 0) + 1);
+                    
+                    // Convergence time
+                    const convergenceKey = Math.floor(result.steps / 50) * 50;
+                    statistics.convergenceTime.set(convergenceKey, (statistics.convergenceTime.get(convergenceKey) || 0) + 1);
+                }
+                
+                statistics.averageSteps = totalSteps / statistics.totalNumbers;
+                
+                return statistics;
+            }
+            
+            // Collatz-Lorenz hybrid (combining Collatz with Lorenz attractor)
+            calculateCollatzLorenz(startValue, maxSteps = 1000) {
+                const sequence = this.calculateCollatzSequence(startValue, maxSteps);
+                const lorenzPoints = [];
+                
+                // Use Collatz sequence to drive Lorenz parameters
+                let x = 1, y = 1, z = 1;
+                const dt = 0.01;
+                
+                for (let i = 0; i < sequence.sequence.length; i++) {
+                    const collatzValue = sequence.sequence[i];
+                    
+                    // Use Collatz value to modulate Lorenz parameters
+                    const sigma = 10 + (collatzValue % 10);
+                    const rho = 28 + (collatzValue % 20);
+                    const beta = 8/3 + (collatzValue % 5) / 10;
+                    
+                    // Lorenz equations
+                    const dx = sigma * (y - x);
+                    const dy = x * (rho - z) - y;
+                    const dz = x * y - beta * z;
+                    
+                    x += dx * dt;
+                    y += dy * dt;
+                    z += dz * dt;
+                    
+                    lorenzPoints.push({
+                        x: x * 20,
+                        y: y * 20,
+                        z: z * 20,
+                        collatzValue: collatzValue,
+                        step: i,
+                        sigma: sigma,
+                        rho: rho,
+                        beta: beta
+                    });
+                }
+                
+                return {
+                    collatzSequence: sequence,
+                    lorenzPoints: lorenzPoints,
+                    hybridData: {
+                        maxCollatzValue: sequence.maxValue,
+                        totalSteps: sequence.steps,
+                        lorenzPoints: lorenzPoints.length
+                    }
+                };
+            }
         }
 
         class VampireProcessVisualizer {
@@ -998,6 +1265,26 @@
                     bestAccuracy: 0,
                     animationId: null
                 };
+                
+                // Collatz Conjecture tracking
+                this.collatzCalculations = {
+                    currentSequence: [],
+                    currentStartValue: 1,
+                    maxSteps: 0,
+                    maxValue: 0,
+                    totalSequences: 0,
+                    isCalculating: false,
+                    statistics: null,
+                    tree: null,
+                    chaosPoints: [],
+                    lorenzHybrid: null,
+                    animationId: null
+                };
+                
+                // Vampire Process Mode
+                this.collatzVampireMode = false; // Collatz-driven vampire processes
+                this.piVampireMode = true; // π-solving vampire processes (default)
+                this.hybridPiCollatzMode = false; // Combined π and Collatz vampire processes
                 
                 // Visual settings
                 this.canvasWidth = 1000;
@@ -1334,6 +1621,295 @@
             spawnVampireProcess(parentId, depth) {
                 if (!this.isRunning) return;
                 
+                // Choose spawning method based on mode
+                if (this.hybridPiCollatzMode) {
+                    this.spawnHybridPiCollatzVampireProcess(parentId, depth);
+                } else if (this.piVampireMode) {
+                    this.spawnPiVampireProcess(parentId, depth);
+                } else if (this.collatzVampireMode) {
+                    this.spawnCollatzVampireProcess(parentId, depth);
+                } else {
+                    this.spawnTraditionalVampireProcess(parentId, depth);
+                }
+            }
+            
+            // Hybrid π-Collatz Vampire Process Spawning
+            spawnHybridPiCollatzVampireProcess(parentId, depth) {
+                if (!this.isRunning) return;
+                
+                const processId = ++this.processCounter;
+                
+                // Use Collatz sequence to determine π calculation method and parameters
+                const collatzStart = processId;
+                const collatzResult = this.chaosMath.calculateCollatzSequence(collatzStart, 20);
+                const collatzSequence = collatzResult.sequence;
+                
+                // Assign π calculation method based on Collatz sequence
+                const piMethods = ['monteCarlo', 'buffonNeedle', 'infiniteSeries', 'goldenRatio', 'mandelbrot', 'ramanujan', 'chudnovsky', 'machin', 'gaussLegendre'];
+                const methodIndex = collatzSequence[0] % piMethods.length;
+                const piMethod = piMethods[methodIndex];
+                
+                // Use Collatz values to determine π calculation parameters
+                const collatzMaxValue = collatzResult.maxValue;
+                const collatzSteps = collatzResult.steps;
+                const iterations = Math.min(1000 + (collatzSteps * 50), 5000);
+                
+                // Calculate π using assigned method with Collatz-driven parameters
+                let piValue = 0;
+                switch(piMethod) {
+                    case 'monteCarlo':
+                        piValue = this.chaosMath.calculatePiMonteCarlo(iterations);
+                        break;
+                    case 'buffonNeedle':
+                        piValue = this.chaosMath.calculatePiBuffonNeedle(1, 2, iterations);
+                        break;
+                    case 'infiniteSeries':
+                        piValue = this.chaosMath.calculatePiInfiniteSeries(Math.min(iterations, 1000));
+                        break;
+                    case 'goldenRatio':
+                        piValue = this.chaosMath.calculatePiGoldenRatio(iterations);
+                        break;
+                    case 'mandelbrot':
+                        piValue = this.chaosMath.calculatePiMandelbrot(iterations);
+                        break;
+                    case 'ramanujan':
+                        piValue = this.chaosMath.calculatePiRamanujan(Math.min(iterations / 100, 10));
+                        break;
+                    case 'chudnovsky':
+                        piValue = this.chaosMath.calculatePiChudnovsky(Math.min(iterations / 100, 10));
+                        break;
+                    case 'machin':
+                        piValue = this.chaosMath.calculatePiMachin(Math.min(iterations / 50, 20));
+                        break;
+                    case 'gaussLegendre':
+                        piValue = this.chaosMath.calculatePiGaussLegendre(Math.min(iterations / 100, 10));
+                        break;
+                }
+                
+                // Use Collatz sequence to determine spawn position
+                let x, y;
+                if (parentId === 0) {
+                    // First process spawns in center
+                    x = this.canvasWidth / 2;
+                    y = this.canvasHeight / 2;
+                } else {
+                    // Child processes spawn based on Collatz sequence and π accuracy
+                    const parentProcess = this.processes.get(parentId);
+                    const accuracy = this.calculatePiAccuracy(piValue);
+                    const collatzValue = collatzSequence[Math.min(depth, collatzSequence.length - 1)];
+                    
+                    // Combine Collatz and π factors for positioning
+                    const collatzAngle = (collatzValue * 0.1) % (Math.PI * 2);
+                    const piAngle = (methodIndex * Math.PI * 2 / piMethods.length);
+                    const combinedAngle = (collatzAngle + piAngle) / 2;
+                    
+                    const collatzDistance = (collatzValue % 80) + 40;
+                    const piDistance = 60 + (accuracy * 0.5);
+                    const combinedDistance = (collatzDistance + piDistance) / 2;
+                    
+                    x = parentProcess.x + Math.cos(combinedAngle) * combinedDistance;
+                    y = parentProcess.y + Math.sin(combinedAngle) * combinedDistance;
+                    
+                    // Keep within canvas bounds
+                    x = Math.max(30, Math.min(this.canvasWidth - 30, x));
+                    y = Math.max(30, Math.min(this.canvasHeight - 30, y));
+                }
+                
+                const process = {
+                    id: processId,
+                    parentId: parentId,
+                    x: x,
+                    y: y,
+                    originalX: x,
+                    originalY: y,
+                    depth: depth,
+                    state: 'spawning',
+                    spawnTime: Date.now(),
+                    lifeTime: 0,
+                    // π properties
+                    piMethod: piMethod,
+                    piValue: piValue,
+                    piAccuracy: this.calculatePiAccuracy(piValue),
+                    piIterations: iterations,
+                    // Collatz properties
+                    collatzSequence: collatzSequence,
+                    collatzSteps: collatzSteps,
+                    collatzMaxValue: collatzMaxValue,
+                    // Hybrid properties
+                    hybridMode: true,
+                    collatzPiMethod: methodIndex
+                };
+                
+                this.processes.set(processId, process);
+                this.activeProcesses.add(processId);
+                this.maxDepth = Math.max(this.maxDepth, depth);
+                
+                // Record the spawn event
+                this.events.push({
+                    type: 'spawn',
+                    processId: processId,
+                    parentId: parentId,
+                    timestamp: Date.now(),
+                    depth: depth,
+                    piMethod: piMethod,
+                    piValue: piValue,
+                    piAccuracy: this.calculatePiAccuracy(piValue),
+                    collatzSteps: collatzSteps,
+                    hybridMode: true
+                });
+                
+                // Use both Collatz and π accuracy to determine timing
+                const collatzDelay = Math.max(20, 150 - collatzSteps);
+                const piDelay = Math.max(20, 150 - this.calculatePiAccuracy(piValue));
+                const hybridDelay = Math.min(collatzDelay, piDelay);
+                
+                const collatzLifetime = Math.max(100, 300 - collatzSteps);
+                const piLifetime = Math.max(100, 300 - this.calculatePiAccuracy(piValue));
+                const hybridLifetime = Math.max(collatzLifetime, piLifetime);
+                
+                // Immediately spawn a child (vampire behavior with hybrid timing)
+                setTimeout(() => {
+                    if (this.isRunning) {
+                        this.spawnHybridPiCollatzVampireProcess(processId, depth + 1);
+                    }
+                }, hybridDelay);
+                
+                // Process dies after spawning (vampire behavior with hybrid lifetime)
+                setTimeout(() => {
+                    this.killProcess(processId);
+                }, hybridLifetime);
+            }
+            
+            // π-Solving Vampire Process Spawning
+            spawnPiVampireProcess(parentId, depth) {
+                if (!this.isRunning) return;
+                
+                const processId = ++this.processCounter;
+                
+                // Assign π calculation method to this process
+                const piMethods = ['monteCarlo', 'buffonNeedle', 'infiniteSeries', 'goldenRatio', 'mandelbrot', 'ramanujan', 'chudnovsky', 'machin', 'gaussLegendre'];
+                const piMethod = piMethods[processId % piMethods.length];
+                
+                // Calculate π using assigned method
+                let piValue = 0;
+                const iterations = Math.min(1000 + depth * 100, 5000);
+                
+                switch(piMethod) {
+                    case 'monteCarlo':
+                        piValue = this.chaosMath.calculatePiMonteCarlo(iterations);
+                        break;
+                    case 'buffonNeedle':
+                        piValue = this.chaosMath.calculatePiBuffonNeedle(1, 2, iterations);
+                        break;
+                    case 'infiniteSeries':
+                        piValue = this.chaosMath.calculatePiInfiniteSeries(Math.min(iterations, 1000));
+                        break;
+                    case 'goldenRatio':
+                        piValue = this.chaosMath.calculatePiGoldenRatio(iterations);
+                        break;
+                    case 'mandelbrot':
+                        piValue = this.chaosMath.calculatePiMandelbrot(iterations);
+                        break;
+                    case 'ramanujan':
+                        piValue = this.chaosMath.calculatePiRamanujan(Math.min(iterations / 100, 10));
+                        break;
+                    case 'chudnovsky':
+                        piValue = this.chaosMath.calculatePiChudnovsky(Math.min(iterations / 100, 10));
+                        break;
+                    case 'machin':
+                        piValue = this.chaosMath.calculatePiMachin(Math.min(iterations / 50, 20));
+                        break;
+                    case 'gaussLegendre':
+                        piValue = this.chaosMath.calculatePiGaussLegendre(Math.min(iterations / 100, 10));
+                        break;
+                }
+                
+                // Use π value and method to determine spawn position
+                let x, y;
+                if (parentId === 0) {
+                    // First process spawns in center
+                    x = this.canvasWidth / 2;
+                    y = this.canvasHeight / 2;
+                } else {
+                    // Child processes spawn based on π method and accuracy
+                    const parentProcess = this.processes.get(parentId);
+                    const accuracy = this.calculatePiAccuracy(piValue);
+                    const methodIndex = piMethods.indexOf(piMethod);
+                    
+                    // Spawn in method-specific regions
+                    const angle = (methodIndex * Math.PI * 2 / piMethods.length) + (accuracy * 0.1);
+                    const distance = 60 + (accuracy * 0.5);
+                    
+                    x = parentProcess.x + Math.cos(angle) * distance;
+                    y = parentProcess.y + Math.sin(angle) * distance;
+                    
+                    // Keep within canvas bounds
+                    x = Math.max(30, Math.min(this.canvasWidth - 30, x));
+                    y = Math.max(30, Math.min(this.canvasHeight - 30, y));
+                }
+                
+                const process = {
+                    id: processId,
+                    parentId: parentId,
+                    x: x,
+                    y: y,
+                    originalX: x,
+                    originalY: y,
+                    depth: depth,
+                    state: 'spawning',
+                    spawnTime: Date.now(),
+                    lifeTime: 0,
+                    piMethod: piMethod,
+                    piValue: piValue,
+                    piAccuracy: this.calculatePiAccuracy(piValue),
+                    piIterations: iterations
+                };
+                
+                this.processes.set(processId, process);
+                this.activeProcesses.add(processId);
+                this.maxDepth = Math.max(this.maxDepth, depth);
+                
+                // Record the spawn event
+                this.events.push({
+                    type: 'spawn',
+                    processId: processId,
+                    parentId: parentId,
+                    timestamp: Date.now(),
+                    depth: depth,
+                    piMethod: piMethod,
+                    piValue: piValue,
+                    piAccuracy: this.calculatePiAccuracy(piValue)
+                });
+                
+                // Use π accuracy to determine spawn timing (more accurate = faster spawning)
+                const accuracyDelay = Math.max(20, 150 - this.calculatePiAccuracy(piValue));
+                const accuracyLifetime = Math.max(100, 300 - this.calculatePiAccuracy(piValue));
+                
+                // Immediately spawn a child (vampire behavior with π-based timing)
+                setTimeout(() => {
+                    if (this.isRunning) {
+                        this.spawnPiVampireProcess(processId, depth + 1);
+                    }
+                }, accuracyDelay);
+                
+                // Process dies after spawning (vampire behavior with π-based lifetime)
+                setTimeout(() => {
+                    this.killProcess(processId);
+                }, accuracyLifetime);
+            }
+            
+            calculatePiAccuracy(piValue) {
+                if (piValue === 0) return 0;
+                const actualPi = Math.PI;
+                const error = Math.abs(piValue - actualPi);
+                const accuracy = Math.max(0, 100 - (error / actualPi) * 100);
+                return Math.min(100, accuracy);
+            }
+            
+            // Traditional Vampire Process Spawning
+            spawnTraditionalVampireProcess(parentId, depth) {
+                if (!this.isRunning) return;
+                
                 const processId = ++this.processCounter;
                 const x = Math.random() * (this.canvasWidth - 100) + 50;
                 const y = Math.random() * (this.canvasHeight - 100) + 50;
@@ -1375,6 +1951,85 @@
                 setTimeout(() => {
                     this.killProcess(processId);
                 }, Math.random() * 200 + 100); // Random lifetime 100-300ms
+            }
+            
+            // Collatz-driven Vampire Process Spawning
+            spawnCollatzVampireProcess(parentId, depth) {
+                if (!this.isRunning) return;
+                
+                const processId = ++this.processCounter;
+                
+                // Use Collatz sequence to determine spawn position
+                const collatzStart = processId;
+                const collatzResult = this.chaosMath.calculateCollatzSequence(collatzStart, 20);
+                const collatzSequence = collatzResult.sequence;
+                
+                // Use Collatz values to determine spawn coordinates
+                let x, y;
+                if (parentId === 0) {
+                    // First process spawns in center
+                    x = this.canvasWidth / 2;
+                    y = this.canvasHeight / 2;
+                } else {
+                    // Child processes spawn based on Collatz sequence
+                    const parentProcess = this.processes.get(parentId);
+                    const collatzValue = collatzSequence[Math.min(depth, collatzSequence.length - 1)];
+                    const angle = (collatzValue * 0.1) % (Math.PI * 2);
+                    const distance = (collatzValue % 80) + 40;
+                    
+                    x = parentProcess.x + Math.cos(angle) * distance;
+                    y = parentProcess.y + Math.sin(angle) * distance;
+                    
+                    // Keep within canvas bounds
+                    x = Math.max(30, Math.min(this.canvasWidth - 30, x));
+                    y = Math.max(30, Math.min(this.canvasHeight - 30, y));
+                }
+                
+                const process = {
+                    id: processId,
+                    parentId: parentId,
+                    x: x,
+                    y: y,
+                    originalX: x,
+                    originalY: y,
+                    depth: depth,
+                    state: 'spawning',
+                    spawnTime: Date.now(),
+                    lifeTime: 0,
+                    collatzSequence: collatzSequence,
+                    collatzSteps: collatzResult.steps,
+                    collatzMaxValue: collatzResult.maxValue
+                };
+                
+                this.processes.set(processId, process);
+                this.activeProcesses.add(processId);
+                this.maxDepth = Math.max(this.maxDepth, depth);
+                
+                // Record the spawn event
+                this.events.push({
+                    type: 'spawn',
+                    processId: processId,
+                    parentId: parentId,
+                    timestamp: Date.now(),
+                    depth: depth,
+                    collatzSteps: collatzResult.steps
+                });
+                
+                // Use Collatz sequence to determine spawn timing
+                const collatzDelay = (collatzResult.steps % 100) + 50;
+                const collatzLifetime = (collatzResult.maxValue % 200) + 100;
+                
+                // Immediately spawn a child (vampire behavior with Collatz timing)
+                setTimeout(() => {
+                    if (this.isRunning) {
+                        this.spawnCollatzVampireProcess(processId, depth + 1);
+                    }
+                }, collatzDelay);
+                
+                // Process dies after spawning (vampire behavior with Collatz lifetime)
+                setTimeout(() => {
+                    this.killProcess(processId);
+                }, collatzLifetime);
             }
             
             killProcess(processId) {
@@ -1463,6 +2118,9 @@
                 
                 // Draw infinite π visualization if active
                 this.drawInfinitePiVisualization();
+                
+                // Draw Collatz visualization if active
+                this.drawCollatzVisualization();
                 
                 // Draw info
                 this.drawInfo();
@@ -1569,7 +2227,17 @@
             }
             
             drawConnections() {
-                // Draw Lorenz attractor connections between all processes
+                // Draw Collatz-driven connections between vampire processes
+                this.drawCollatzConnections();
+                
+                // Also draw traditional Lorenz attractors if enabled
+                if (this.chaosMath.isComponentEnabled('lorenzAttractor')) {
+                    this.drawLorenzConnections();
+                }
+            }
+            
+            drawLorenzConnections() {
+                // Original Lorenz attractor connections
                 const processArray = Array.from(this.processes.values());
                 
                 for (let i = 0; i < processArray.length; i++) {
@@ -1586,6 +2254,158 @@
                             this.drawLorenzAttractor(process1, process2);
                         }
                     }
+                }
+            }
+            
+            // Collatz-driven Vampire Process Connections
+            drawCollatzConnections() {
+                const processArray = Array.from(this.processes.values());
+                
+                for (let i = 0; i < processArray.length; i++) {
+                    for (let j = i + 1; j < processArray.length; j++) {
+                        const process1 = processArray[i];
+                        const process2 = processArray[j];
+                        const distance = Math.sqrt(
+                            Math.pow(process2.x - process1.x, 2) + 
+                            Math.pow(process2.y - process1.y, 2)
+                        );
+                        
+                        // Only draw connections for nearby processes
+                        if (distance < 300) {
+                            this.drawCollatzPath(process1, process2);
+                        }
+                    }
+                }
+            }
+            
+            drawCollatzPath(process1, process2) {
+                // Use process IDs to generate Collatz sequence for path
+                const collatzStart = Math.abs(process1.id - process2.id) + 1;
+                const collatzSequence = this.chaosMath.calculateCollatzSequence(collatzStart, 50);
+                
+                // Create path points based on Collatz sequence
+                const pathPoints = this.generateCollatzPathPoints(process1, process2, collatzSequence.sequence);
+                
+                // Draw the Collatz-driven path
+                this.drawCollatzPathCurve(pathPoints, collatzSequence);
+            }
+            
+            generateCollatzPathPoints(process1, process2, collatzSequence) {
+                const points = [];
+                const totalSteps = collatzSequence.length;
+                const maxValue = Math.max(...collatzSequence);
+                
+                for (let i = 0; i < totalSteps; i++) {
+                    const t = i / (totalSteps - 1);
+                    const collatzValue = collatzSequence[i];
+                    
+                    // Linear interpolation between processes
+                    const baseX = process1.x + (process2.x - process1.x) * t;
+                    const baseY = process1.y + (process2.y - process1.y) * t;
+                    
+                    // Use Collatz value to create deviations
+                    const deviation = (collatzValue / maxValue) * 50;
+                    const angle = (i / totalSteps) * Math.PI * 4; // Multiple spirals
+                    
+                    // Add Collatz-based chaos
+                    const chaosX = Math.sin(angle) * deviation * Math.sin(collatzValue * 0.1);
+                    const chaosY = Math.cos(angle) * deviation * Math.cos(collatzValue * 0.1);
+                    
+                    points.push({
+                        x: baseX + chaosX,
+                        y: baseY + chaosY,
+                        collatzValue: collatzValue,
+                        step: i,
+                        isEven: collatzValue % 2 === 0
+                    });
+                }
+                
+                return points;
+            }
+            
+            drawCollatzPathCurve(pathPoints, collatzSequence) {
+                if (pathPoints.length < 2) return;
+                
+                // Draw main path
+                this.ctx.strokeStyle = `rgba(255, 68, 68, 0.7)`;
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                
+                let firstPoint = true;
+                for (const point of pathPoints) {
+                    if (firstPoint) {
+                        this.ctx.moveTo(point.x, point.y);
+                        firstPoint = false;
+                    } else {
+                        this.ctx.lineTo(point.x, point.y);
+                    }
+                }
+                this.ctx.stroke();
+                
+                // Draw Collatz value indicators
+                for (let i = 0; i < pathPoints.length; i += 3) {
+                    const point = pathPoints[i];
+                    const alpha = 0.3 + (point.collatzValue / Math.max(...collatzSequence.sequence)) * 0.4;
+                    
+                    // Different colors for even/odd Collatz values
+                    const color = point.isEven ? 
+                        `rgba(68, 255, 68, ${alpha})` : 
+                        `rgba(255, 255, 68, ${alpha})`;
+                    
+                    this.ctx.fillStyle = color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                }
+                
+                // Draw Collatz sequence as branching paths
+                this.drawCollatzBranches(pathPoints, collatzSequence);
+            }
+            
+            drawCollatzBranches(pathPoints, collatzSequence) {
+                for (let i = 1; i < pathPoints.length - 1; i++) {
+                    const point = pathPoints[i];
+                    const collatzValue = point.collatzValue;
+                    
+                    // Create branches based on Collatz values
+                    if (collatzValue > 10 && collatzValue % 7 === 0) {
+                        const branchLength = (collatzValue % 20) + 10;
+                        const branchAngle = (collatzValue * 0.1) % (Math.PI * 2);
+                        
+                        const branchX = point.x + Math.cos(branchAngle) * branchLength;
+                        const branchY = point.y + Math.sin(branchAngle) * branchLength;
+                        
+                        this.ctx.strokeStyle = `rgba(255, 150, 150, 0.4)`;
+                        this.ctx.lineWidth = 1;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(point.x, point.y);
+                        this.ctx.lineTo(branchX, branchY);
+                        this.ctx.stroke();
+                        
+                        // Add sub-branches for high Collatz values
+                        if (collatzValue > 50) {
+                            this.drawCollatzSubBranches(point, collatzValue);
+                        }
+                    }
+                }
+            }
+            
+            drawCollatzSubBranches(parentPoint, collatzValue) {
+                const subBranches = Math.min(Math.floor(collatzValue / 25), 3);
+                
+                for (let i = 0; i < subBranches; i++) {
+                    const subAngle = (collatzValue * 0.05 + i * Math.PI / 3) % (Math.PI * 2);
+                    const subLength = (collatzValue % 15) + 5;
+                    
+                    const subX = parentPoint.x + Math.cos(subAngle) * subLength;
+                    const subY = parentPoint.y + Math.sin(subAngle) * subLength;
+                    
+                    this.ctx.strokeStyle = `rgba(255, 200, 200, 0.3)`;
+                    this.ctx.lineWidth = 0.5;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(parentPoint.x, parentPoint.y);
+                    this.ctx.lineTo(subX, subY);
+                    this.ctx.stroke();
                 }
             }
             
@@ -1748,6 +2568,117 @@
             }
             
             drawProcesses() {
+                // Choose drawing method based on vampire mode
+                if (this.hybridPiCollatzMode) {
+                    this.drawHybridProcesses();
+                } else if (this.piVampireMode) {
+                    this.drawPiProcesses();
+                } else {
+                    this.drawTraditionalProcesses();
+                }
+            }
+            
+            // Hybrid π-Collatz Process Drawing
+            drawHybridProcesses() {
+                for (const [id, process] of this.processes) {
+                    const alpha = process.state === 'dying' ? 0.3 : 1.0;
+                    const size = this.processRadius * 2;
+                    
+                    // Color based on both π method and Collatz properties
+                    const methodColors = {
+                        'monteCarlo': [255, 100, 100],
+                        'buffonNeedle': [100, 255, 100],
+                        'infiniteSeries': [100, 100, 255],
+                        'goldenRatio': [255, 255, 100],
+                        'mandelbrot': [255, 100, 255],
+                        'ramanujan': [100, 255, 255],
+                        'chudnovsky': [255, 150, 100],
+                        'machin': [150, 255, 150],
+                        'gaussLegendre': [150, 150, 255]
+                    };
+                    
+                    const baseColor = methodColors[process.piMethod] || [255, 100, 100];
+                    const accuracy = process.piAccuracy || 0;
+                    const collatzIntensity = Math.min(process.collatzSteps / 100, 1);
+                    
+                    // Adjust color intensity based on both π accuracy and Collatz properties
+                    const piIntensity = 0.5 + (accuracy / 100) * 0.5;
+                    const hybridIntensity = (piIntensity + collatzIntensity) / 2;
+                    const color = `rgba(${baseColor[0] * hybridIntensity}, ${baseColor[1] * hybridIntensity}, ${baseColor[2] * hybridIntensity}, ${alpha})`;
+                    
+                    // Draw hybrid butterfly process
+                    this.drawHybridButterflyProcess(process.x, process.y, size, alpha, process.state, color, process);
+                    
+                    // Draw π value and accuracy
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.font = 'bold 8px Arial';
+                    this.ctx.globalAlpha = alpha;
+                    this.ctx.textAlign = 'center';
+                    
+                    // Show π value (truncated)
+                    const piDisplay = process.piValue ? process.piValue.toFixed(4) : '0.0000';
+                    this.ctx.fillText(piDisplay, process.x, process.y - 20);
+                    
+                    // Show accuracy percentage
+                    const accuracyDisplay = `${Math.round(process.piAccuracy || 0)}%`;
+                    this.ctx.fillText(accuracyDisplay, process.x, process.y + 5);
+                    
+                    // Show Collatz steps
+                    const collatzDisplay = `C:${process.collatzSteps}`;
+                    this.ctx.fillText(collatzDisplay, process.x, process.y + 18);
+                    
+                    // Draw method indicator
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    this.ctx.font = '6px Arial';
+                    this.ctx.fillText(process.piMethod?.substring(0, 4) || 'N/A', process.x, process.y + 30);
+                    
+                    this.ctx.globalAlpha = 1.0;
+                }
+            }
+            
+            drawHybridButterflyProcess(x, y, size, alpha, state, color, process) {
+                const wingSize = size * 0.8;
+                const bodySize = size * 0.4;
+                const time = Date.now() * 0.005;
+                const flap = Math.sin(time) * 0.15;
+                
+                // Both π accuracy and Collatz properties affect wing flapping
+                const accuracyMultiplier = 1 + (process.piAccuracy || 0) / 200;
+                const collatzMultiplier = 1 + (process.collatzSteps || 0) / 300;
+                const hybridMultiplier = (accuracyMultiplier + collatzMultiplier) / 2;
+                const enhancedFlap = flap * hybridMultiplier;
+                
+                this.ctx.save();
+                this.ctx.globalAlpha = alpha;
+                this.ctx.translate(x, y);
+                
+                // Draw left wing with π symbol
+                this.ctx.fillStyle = color;
+                this.ctx.beginPath();
+                this.ctx.ellipse(-wingSize * 0.3, -wingSize * 0.2, wingSize * 0.4, wingSize * 0.3, enhancedFlap, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // Draw right wing with Collatz symbol (3n+1)
+                this.ctx.beginPath();
+                this.ctx.ellipse(wingSize * 0.3, -wingSize * 0.2, wingSize * 0.4, wingSize * 0.3, -enhancedFlap, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // Draw body
+                this.ctx.fillStyle = color.replace('0.8', '1.0').replace('0.6', '0.8').replace('0.4', '0.6');
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, 0, bodySize * 0.2, bodySize, 0, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // Draw hybrid symbol on body (π + C)
+                this.ctx.fillStyle = 'white';
+                this.ctx.font = `${bodySize * 0.6}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('πC', 0, bodySize * 0.3);
+                
+                this.ctx.restore();
+            }
+            
+            drawTraditionalProcesses() {
                 for (const [id, process] of this.processes) {
                     const alpha = process.state === 'dying' ? 0.3 : 1.0;
                     const size = this.processRadius * 2;
@@ -1768,6 +2699,98 @@
                     
                     this.ctx.globalAlpha = 1.0;
                 }
+            }
+            
+            // π-Solving Vampire Process Drawing
+            drawPiProcesses() {
+                for (const [id, process] of this.processes) {
+                    const alpha = process.state === 'dying' ? 0.3 : 1.0;
+                    const size = this.processRadius * 2;
+                    
+                    // Color based on π calculation method and accuracy
+                    const methodColors = {
+                        'monteCarlo': [255, 100, 100],
+                        'buffonNeedle': [100, 255, 100],
+                        'infiniteSeries': [100, 100, 255],
+                        'goldenRatio': [255, 255, 100],
+                        'mandelbrot': [255, 100, 255],
+                        'ramanujan': [100, 255, 255],
+                        'chudnovsky': [255, 150, 100],
+                        'machin': [150, 255, 150],
+                        'gaussLegendre': [150, 150, 255]
+                    };
+                    
+                    const baseColor = methodColors[process.piMethod] || [255, 100, 100];
+                    const accuracy = process.piAccuracy || 0;
+                    
+                    // Adjust color intensity based on π accuracy
+                    const colorIntensity = 0.5 + (accuracy / 100) * 0.5;
+                    const color = `rgba(${baseColor[0] * colorIntensity}, ${baseColor[1] * colorIntensity}, ${baseColor[2] * colorIntensity}, ${alpha})`;
+                    
+                    // Draw π-solving butterfly process
+                    this.drawPiButterflyProcess(process.x, process.y, size, alpha, process.state, color, process);
+                    
+                    // Draw π value and accuracy
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.font = 'bold 8px Arial';
+                    this.ctx.globalAlpha = alpha;
+                    this.ctx.textAlign = 'center';
+                    
+                    // Show π value (truncated)
+                    const piDisplay = process.piValue ? process.piValue.toFixed(4) : '0.0000';
+                    this.ctx.fillText(piDisplay, process.x, process.y - 15);
+                    
+                    // Show accuracy percentage
+                    const accuracyDisplay = `${Math.round(process.piAccuracy || 0)}%`;
+                    this.ctx.fillText(accuracyDisplay, process.x, process.y + 15);
+                    
+                    // Draw method indicator
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    this.ctx.font = '6px Arial';
+                    this.ctx.fillText(process.piMethod?.substring(0, 4) || 'N/A', process.x, process.y + 25);
+                    
+                    this.ctx.globalAlpha = 1.0;
+                }
+            }
+            
+            drawPiButterflyProcess(x, y, size, alpha, state, color, process) {
+                const wingSize = size * 0.8;
+                const bodySize = size * 0.4;
+                const time = Date.now() * 0.005;
+                const flap = Math.sin(time) * 0.15;
+                
+                // π accuracy affects wing flapping speed
+                const accuracyMultiplier = 1 + (process.piAccuracy || 0) / 200;
+                const enhancedFlap = flap * accuracyMultiplier;
+                
+                this.ctx.save();
+                this.ctx.globalAlpha = alpha;
+                this.ctx.translate(x, y);
+                
+                // Draw left wing
+                this.ctx.fillStyle = color;
+                this.ctx.beginPath();
+                this.ctx.ellipse(-wingSize * 0.3, -wingSize * 0.2, wingSize * 0.4, wingSize * 0.3, enhancedFlap, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // Draw right wing
+                this.ctx.beginPath();
+                this.ctx.ellipse(wingSize * 0.3, -wingSize * 0.2, wingSize * 0.4, wingSize * 0.3, -enhancedFlap, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // Draw body
+                this.ctx.fillStyle = color.replace('0.8', '1.0').replace('0.6', '0.8').replace('0.4', '0.6');
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, 0, bodySize * 0.2, bodySize, 0, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // Draw π symbol on body
+                this.ctx.fillStyle = 'white';
+                this.ctx.font = `${bodySize * 0.8}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('π', 0, bodySize * 0.3);
+                
+                this.ctx.restore();
             }
             
             drawButterflyProcess(x, y, size, alpha, state) {
@@ -2163,6 +3186,212 @@
                 }
                 this.ctx.stroke();
             }
+            
+            // Collatz Conjecture Methods
+            calculateCollatzSequence(startValue) {
+                if (this.collatzCalculations.isCalculating) return;
+                
+                this.collatzCalculations.isCalculating = true;
+                this.collatzCalculations.currentStartValue = startValue;
+                
+                const result = this.chaosMath.calculateCollatzSequence(startValue, 10000);
+                this.collatzCalculations.currentSequence = result.sequence;
+                this.collatzCalculations.maxSteps = Math.max(this.collatzCalculations.maxSteps, result.steps);
+                this.collatzCalculations.maxValue = Math.max(this.collatzCalculations.maxValue, result.maxValue);
+                this.collatzCalculations.totalSequences++;
+                
+                this.collatzCalculations.isCalculating = false;
+                this.updateCollatzDisplay();
+            }
+            
+            calculateCollatzChaos(startValue) {
+                if (this.collatzCalculations.isCalculating) return;
+                
+                this.collatzCalculations.isCalculating = true;
+                this.collatzCalculations.currentStartValue = startValue;
+                
+                const result = this.chaosMath.calculateCollatzChaos(startValue, 10000);
+                this.collatzCalculations.currentSequence = result.sequence;
+                this.collatzCalculations.chaosPoints = result.chaosPoints;
+                this.collatzCalculations.maxSteps = Math.max(this.collatzCalculations.maxSteps, result.steps);
+                this.collatzCalculations.maxValue = Math.max(this.collatzCalculations.maxValue, result.maxValue);
+                this.collatzCalculations.totalSequences++;
+                
+                this.collatzCalculations.isCalculating = false;
+                this.updateCollatzDisplay();
+            }
+            
+            calculateCollatzStatistics(startRange, endRange) {
+                if (this.collatzCalculations.isCalculating) return;
+                
+                this.collatzCalculations.isCalculating = true;
+                
+                const statistics = this.chaosMath.calculateCollatzStatistics(startRange, endRange);
+                this.collatzCalculations.statistics = statistics;
+                
+                this.collatzCalculations.isCalculating = false;
+                this.updateCollatzDisplay();
+            }
+            
+            calculateCollatzTree(maxDepth) {
+                if (this.collatzCalculations.isCalculating) return;
+                
+                this.collatzCalculations.isCalculating = true;
+                
+                const tree = this.chaosMath.calculateCollatzTree(maxDepth, 1000);
+                this.collatzCalculations.tree = tree;
+                
+                this.collatzCalculations.isCalculating = false;
+                this.updateCollatzDisplay();
+            }
+            
+            calculateCollatzLorenz(startValue) {
+                if (this.collatzCalculations.isCalculating) return;
+                
+                this.collatzCalculations.isCalculating = true;
+                
+                const hybrid = this.chaosMath.calculateCollatzLorenz(startValue, 1000);
+                this.collatzCalculations.lorenzHybrid = hybrid;
+                
+                this.collatzCalculations.isCalculating = false;
+                this.updateCollatzDisplay();
+            }
+            
+            updateCollatzDisplay() {
+                // Update Collatz display elements if they exist
+                const collatzElements = {
+                    'collatzStartValue': this.collatzCalculations.currentStartValue,
+                    'collatzSteps': this.collatzCalculations.currentSequence.length - 1,
+                    'collatzMaxValue': this.collatzCalculations.maxValue,
+                    'collatzTotalSequences': this.collatzCalculations.totalSequences,
+                    'collatzMaxSteps': this.collatzCalculations.maxSteps
+                };
+                
+                for (const [id, value] of Object.entries(collatzElements)) {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.textContent = value.toString();
+                    }
+                }
+            }
+            
+            drawCollatzVisualization() {
+                if (!this.collatzCalculations.currentSequence.length) return;
+                
+                // Draw Collatz sequence visualization
+                this.drawCollatzSequence();
+                
+                // Draw chaos points if available
+                if (this.collatzCalculations.chaosPoints.length) {
+                    this.drawCollatzChaos();
+                }
+                
+                // Draw Lorenz hybrid if available
+                if (this.collatzCalculations.lorenzHybrid) {
+                    this.drawCollatzLorenz();
+                }
+            }
+            
+            drawCollatzSequence() {
+                const sequence = this.collatzCalculations.currentSequence;
+                if (sequence.length < 2) return;
+                
+                const startX = 50;
+                const startY = this.canvasHeight - 100;
+                const stepWidth = (this.canvasWidth - 100) / Math.min(sequence.length, 50);
+                
+                this.ctx.strokeStyle = '#ff4444';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                
+                let firstPoint = true;
+                for (let i = 0; i < Math.min(sequence.length, 50); i++) {
+                    const x = startX + i * stepWidth;
+                    const y = startY - (sequence[i] / this.collatzCalculations.maxValue) * 80;
+                    
+                    if (firstPoint) {
+                        this.ctx.moveTo(x, y);
+                        firstPoint = false;
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                }
+                this.ctx.stroke();
+                
+                // Draw sequence values
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = '10px Arial';
+                this.ctx.textAlign = 'center';
+                for (let i = 0; i < Math.min(sequence.length, 20); i += 2) {
+                    const x = startX + i * stepWidth;
+                    const y = startY - (sequence[i] / this.collatzCalculations.maxValue) * 80 - 10;
+                    this.ctx.fillText(sequence[i].toString(), x, y);
+                }
+            }
+            
+            drawCollatzChaos() {
+                const chaosPoints = this.collatzCalculations.chaosPoints;
+                if (!chaosPoints.length) return;
+                
+                const centerX = this.canvasWidth / 2;
+                const centerY = this.canvasHeight / 2;
+                
+                this.ctx.strokeStyle = 'rgba(255, 68, 68, 0.6)';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                
+                let firstPoint = true;
+                for (const point of chaosPoints) {
+                    const x = centerX + point.x;
+                    const y = centerY + point.y;
+                    
+                    if (firstPoint) {
+                        this.ctx.moveTo(x, y);
+                        firstPoint = false;
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                }
+                this.ctx.stroke();
+                
+                // Draw points
+                for (const point of chaosPoints) {
+                    const x = centerX + point.x;
+                    const y = centerY + point.y;
+                    const alpha = Math.min(point.step / chaosPoints.length, 1);
+                    
+                    this.ctx.fillStyle = `rgba(255, 68, 68, ${alpha})`;
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, 2, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                }
+            }
+            
+            drawCollatzLorenz() {
+                const hybrid = this.collatzCalculations.lorenzHybrid;
+                if (!hybrid || !hybrid.lorenzPoints.length) return;
+                
+                const centerX = this.canvasWidth / 2;
+                const centerY = this.canvasHeight / 2;
+                
+                this.ctx.strokeStyle = 'rgba(68, 255, 68, 0.6)';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                
+                let firstPoint = true;
+                for (const point of hybrid.lorenzPoints) {
+                    const x = centerX + point.x;
+                    const y = centerY + point.y;
+                    
+                    if (firstPoint) {
+                        this.ctx.moveTo(x, y);
+                        firstPoint = false;
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                }
+                this.ctx.stroke();
+            }
         }
         
         // Initialize the visualizer
@@ -2313,6 +3542,89 @@
             document.getElementById('startInfiniteBtn').disabled = false;
             document.getElementById('stopInfiniteBtn').disabled = true;
             document.getElementById('startInfiniteBtn').textContent = 'Start Infinite π';
+        }
+        
+        // Collatz Conjecture Functions
+        function calculateCollatz() {
+            const startValue = parseInt(document.getElementById('collatzStartValue').value) || 27;
+            visualizer.calculateCollatzSequence(startValue);
+        }
+        
+        function calculateCollatzChaos() {
+            const startValue = parseInt(document.getElementById('collatzStartValue').value) || 27;
+            visualizer.calculateCollatzChaos(startValue);
+        }
+        
+        function calculateCollatzStats() {
+            visualizer.calculateCollatzStatistics(1, 1000);
+        }
+        
+        function calculateCollatzTree() {
+            visualizer.calculateCollatzTree(10);
+        }
+        
+        function calculateCollatzLorenz() {
+            const startValue = parseInt(document.getElementById('collatzStartValue').value) || 27;
+            visualizer.calculateCollatzLorenz(startValue);
+        }
+        
+        // Vampire Process Mode Functions
+        function toggleCollatzVampire() {
+            visualizer.hybridPiCollatzMode = false;
+            visualizer.piVampireMode = false;
+            visualizer.collatzVampireMode = true;
+            document.getElementById('collatzVampireBtn').disabled = true;
+            document.getElementById('traditionalVampireBtn').disabled = false;
+            document.getElementById('piVampireBtn').disabled = false;
+            document.getElementById('hybridPiCollatzBtn').disabled = false;
+            document.getElementById('collatzVampireBtn').textContent = 'Collatz Vampire Active';
+            document.getElementById('traditionalVampireBtn').textContent = 'Switch to Traditional';
+            document.getElementById('piVampireBtn').textContent = 'Switch to π';
+            document.getElementById('hybridPiCollatzBtn').textContent = 'Switch to Hybrid';
+        }
+        
+        function toggleTraditionalVampire() {
+            visualizer.hybridPiCollatzMode = false;
+            visualizer.piVampireMode = false;
+            visualizer.collatzVampireMode = false;
+            document.getElementById('traditionalVampireBtn').disabled = true;
+            document.getElementById('collatzVampireBtn').disabled = false;
+            document.getElementById('piVampireBtn').disabled = false;
+            document.getElementById('hybridPiCollatzBtn').disabled = false;
+            document.getElementById('traditionalVampireBtn').textContent = 'Traditional Vampire Active';
+            document.getElementById('collatzVampireBtn').textContent = 'Switch to Collatz';
+            document.getElementById('piVampireBtn').textContent = 'Switch to π';
+            document.getElementById('hybridPiCollatzBtn').textContent = 'Switch to Hybrid';
+        }
+        
+        // π Vampire Mode Functions
+        function togglePiVampire() {
+            visualizer.hybridPiCollatzMode = false;
+            visualizer.piVampireMode = true;
+            visualizer.collatzVampireMode = false;
+            document.getElementById('piVampireBtn').disabled = true;
+            document.getElementById('collatzVampireBtn').disabled = false;
+            document.getElementById('traditionalVampireBtn').disabled = false;
+            document.getElementById('hybridPiCollatzBtn').disabled = false;
+            document.getElementById('piVampireBtn').textContent = 'π Vampire Active';
+            document.getElementById('collatzVampireBtn').textContent = 'Switch to Collatz';
+            document.getElementById('traditionalVampireBtn').textContent = 'Switch to Traditional';
+            document.getElementById('hybridPiCollatzBtn').textContent = 'Switch to Hybrid';
+        }
+        
+        // Hybrid π-Collatz Mode Functions
+        function toggleHybridPiCollatz() {
+            visualizer.hybridPiCollatzMode = true;
+            visualizer.piVampireMode = false;
+            visualizer.collatzVampireMode = false;
+            document.getElementById('hybridPiCollatzBtn').disabled = true;
+            document.getElementById('piVampireBtn').disabled = false;
+            document.getElementById('collatzVampireBtn').disabled = false;
+            document.getElementById('traditionalVampireBtn').disabled = false;
+            document.getElementById('hybridPiCollatzBtn').textContent = 'Hybrid π-Collatz Active';
+            document.getElementById('piVampireBtn').textContent = 'Switch to π';
+            document.getElementById('collatzVampireBtn').textContent = 'Switch to Collatz';
+            document.getElementById('traditionalVampireBtn').textContent = 'Switch to Traditional';
         }
         
         // Handle window resize
