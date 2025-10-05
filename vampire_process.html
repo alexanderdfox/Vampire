@@ -49,15 +49,56 @@
         
         .custom-cursor {
             position: absolute;
-            width: 20px;
-            height: 20px;
-            background: radial-gradient(circle, #ff4444, #cc0000);
-            border-radius: 50%;
+            width: 30px;
+            height: 30px;
             pointer-events: none;
             z-index: 1000;
-            box-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
             transition: all 0.1s ease;
-            border: 2px solid white;
+        }
+        
+        .butterfly-cursor {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-origin: center;
+            animation: butterfly-flap 0.3s ease-in-out infinite alternate;
+        }
+        
+        .butterfly-wing {
+            position: absolute;
+            width: 15px;
+            height: 20px;
+            border-radius: 50% 10% 50% 10%;
+            background: linear-gradient(45deg, #ff4444, #ff6666, #cc0000);
+            box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+        }
+        
+        .butterfly-wing.left {
+            left: 0;
+            top: 0;
+            transform: rotate(-30deg);
+        }
+        
+        .butterfly-wing.right {
+            right: 0;
+            top: 0;
+            transform: rotate(30deg);
+        }
+        
+        .butterfly-body {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 3px;
+            height: 25px;
+            background: linear-gradient(to bottom, #333, #666);
+            transform: translate(-50%, -50%);
+            border-radius: 2px;
+        }
+        
+        @keyframes butterfly-flap {
+            0% { transform: rotate(-5deg); }
+            100% { transform: rotate(5deg); }
         }
         
         .cursor-trail {
@@ -163,7 +204,13 @@
         
         <div class="canvas-container">
             <canvas id="vampireCanvas" width="1000" height="600"></canvas>
-            <div id="customCursor" class="custom-cursor"></div>
+            <div id="customCursor" class="custom-cursor">
+                <div class="butterfly-cursor">
+                    <div class="butterfly-wing left"></div>
+                    <div class="butterfly-wing right"></div>
+                    <div class="butterfly-body"></div>
+                </div>
+            </div>
         </div>
         
         <div class="controls">
@@ -173,6 +220,36 @@
             <button id="clearDrawingBtn" onclick="clearDrawing()">Clear Drawing</button>
             <button id="snapshotBtn" onclick="takeSnapshot()">Take Snapshot</button>
             <button id="followBtn" onclick="toggleMouseFollowing()">Toggle Mouse Following</button>
+            <button id="bresenhamBtn" onclick="toggleBresenhamCircles()">Toggle Bresenham Circles</button>
+        </div>
+        
+        <div class="controls">
+            <h3 style="color: #ff4444; margin: 10px 0;">Chaos Math Components</h3>
+            <button id="lorenzAttractorBtn" onclick="toggleChaosComponent('lorenzAttractor')">Lorenz Attractor</button>
+            <button id="mandelbrotFieldBtn" onclick="toggleChaosComponent('mandelbrotField')">Mandelbrot Field</button>
+            <button id="chaoticMovementBtn" onclick="toggleChaosComponent('chaoticMovement')">Chaotic Movement</button>
+            <button id="fractalBranchesBtn" onclick="toggleChaosComponent('fractalBranches')">Fractal Branches</button>
+        </div>
+        
+        <div class="controls">
+            <h3 style="color: #ff4444; margin: 10px 0;">π Calculation Methods</h3>
+            <button id="calculatePiBtn" onclick="calculatePi()">Calculate π</button>
+            <button id="clearPiBtn" onclick="clearPiCalculations()">Clear Results</button>
+            <input type="range" id="piIterations" min="100" max="10000" value="1000" onchange="updatePiIterations()">
+            <label for="piIterations">Iterations: <span id="iterationCount">1000</span></label>
+        </div>
+        
+        <div class="controls">
+            <h3 style="color: #ff4444; margin: 10px 0;">Rapid Convergence π</h3>
+            <button id="calculateRapidBtn" onclick="calculateRapidPi()">Calculate Rapid π</button>
+            <button id="clearRapidBtn" onclick="clearRapidPi()">Clear Rapid Results</button>
+        </div>
+        
+        <div class="controls">
+            <h3 style="color: #ff4444; margin: 10px 0;">Infinite π Calculation</h3>
+            <button id="startInfiniteBtn" onclick="startInfinitePi()">Start Infinite π</button>
+            <button id="stopInfiniteBtn" onclick="stopInfinitePi()" disabled>Stop Infinite π</button>
+            <button id="resetInfiniteBtn" onclick="resetInfinitePi()">Reset</button>
         </div>
         
         <div class="stats">
@@ -194,6 +271,62 @@
             </div>
         </div>
         
+        <div class="stats">
+            <h3 style="color: #ff4444; margin: 10px 0; grid-column: 1 / -1;">π Calculation Results</h3>
+            <div class="stat-card">
+                <div class="stat-value" id="monteCarloPi">0.000000</div>
+                <div class="stat-label">Monte Carlo π</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="buffonPi">0.000000</div>
+                <div class="stat-label">Buffon Needle π</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="seriesPi">0.000000</div>
+                <div class="stat-label">Infinite Series π</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="goldenPi">0.000000</div>
+                <div class="stat-label">Golden Ratio π</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="mandelbrotPi">0.000000</div>
+                <div class="stat-label">Mandelbrot π</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="combinedPi">0.000000</div>
+                <div class="stat-label">Combined π</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="actualPi">3.141593</div>
+                <div class="stat-label">Actual π</div>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <h3 style="color: #ff4444; margin: 10px 0; grid-column: 1 / -1;">Rapid Convergence π Methods</h3>
+            <div class="stat-card">
+                <div class="stat-value" id="ramanujanPi">0.000000</div>
+                <div class="stat-label">Ramanujan π</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="chudnovskyPi">0.000000</div>
+                <div class="stat-label">Chudnovsky π</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="machinPi">0.000000</div>
+                <div class="stat-label">Machin π</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="gaussLegendrePi">0.000000</div>
+                <div class="stat-label">Gauss-Legendre π</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="borweinQuarticPi">0.000000</div>
+                <div class="stat-label">Borwein Quartic π</div>
+            </div>
+        </div>
+        
         <div class="info">
             <h3>About the Vampire Process</h3>
             <p>This visualization shows the behavior of vampire.cpp:</p>
@@ -208,6 +341,604 @@
     </div>
 
     <script>
+        // Chaos Mathematics Class - Divided into 4 Parts
+        class ChaosMath {
+            constructor() {
+                this.phi = 1.618033988749895; // Golden ratio
+                this.enabledComponents = {
+                    lorenzAttractor: true,
+                    mandelbrotField: true,
+                    chaoticMovement: true,
+                    fractalBranches: true
+                };
+            }
+            
+            // Part 1: Lorenz Attractor Mathematics
+            calculateLorenzAttractor(parent, child, time, steps, scale, sigma, rho, beta, offset) {
+                const halfSteps = Math.floor(steps / 2);
+                const points = [];
+                
+                // Different initial conditions using golden ratio
+                let x = 1 + offset * this.phi * 0.1;
+                let y = 1 + offset * this.phi * 0.05;
+                let z = 1 + offset * this.phi * 0.02;
+                
+                // First half (upper wing)
+                for (let i = 0; i < halfSteps; i++) {
+                    // Lorenz equations with golden ratio variations
+                    const dx = (sigma + offset * this.phi * 0.1) * (y - x);
+                    const dy = x * (rho + offset * this.phi * 0.2 - z) - (y + offset * this.phi * 0.1);
+                    const dz = x * y - (beta + offset * this.phi * 0.01) * z;
+                    
+                    x += dx * (0.01 + offset * this.phi * 0.001);
+                    y += dy * (0.01 + offset * this.phi * 0.001);
+                    z += dz * (0.01 + offset * this.phi * 0.001);
+                    
+                    // Map to screen coordinates with golden ratio scaling
+                    const progress = i / steps;
+                    const baseX = parent.x + (child.x - parent.x) * progress;
+                    const baseY = parent.y + (child.y - parent.y) * progress;
+                    
+                    // Add golden ratio phase offset for each attractor
+                    const phaseOffset = offset * Math.PI / this.phi;
+                    const goldenScale = scale * (1 + offset * (this.phi - 1) * 0.1);
+                    const screenX = baseX + x * goldenScale * Math.sin(time * this.phi + phaseOffset);
+                    const screenY = baseY + y * goldenScale * Math.cos(time * this.phi + phaseOffset);
+                    
+                    points.push({x: screenX, y: screenY, wing: 'upper'});
+                }
+                
+                // Second half (lower wing) - flipped direction
+                x = 1 + offset * this.phi * 0.1;
+                y = 1 + offset * this.phi * 0.05;
+                z = 1 + offset * this.phi * 0.02;
+                
+                for (let i = halfSteps; i < steps; i++) {
+                    // Lorenz equations with golden ratio variations
+                    const dx = (sigma + offset * this.phi * 0.1) * (y - x);
+                    const dy = x * (rho + offset * this.phi * 0.2 - z) - (y + offset * this.phi * 0.1);
+                    const dz = x * y - (beta + offset * this.phi * 0.01) * z;
+                    
+                    x += dx * (0.01 + offset * this.phi * 0.001);
+                    y += dy * (0.01 + offset * this.phi * 0.001);
+                    z += dz * (0.01 + offset * this.phi * 0.001);
+                    
+                    // Map to screen coordinates with flipped direction
+                    const progress = i / steps;
+                    const baseX = parent.x + (child.x - parent.x) * progress;
+                    const baseY = parent.y + (child.y - parent.y) * progress;
+                    
+                    // Flip the second half - opposite direction
+                    const phaseOffset = offset * Math.PI / this.phi;
+                    const goldenScale = scale * (1 + offset * (this.phi - 1) * 0.1);
+                    const screenX = baseX - x * goldenScale * Math.sin(time * this.phi + phaseOffset);
+                    const screenY = baseY - y * goldenScale * Math.cos(time * this.phi + phaseOffset);
+                    
+                    points.push({x: screenX, y: screenY, wing: 'lower'});
+                }
+                
+                return points;
+            }
+            
+            // Part 2: Mandelbrot Set Mathematics
+            calculateMandelbrotField(canvasWidth, canvasHeight, time) {
+                const scale = 50;
+                const points = [];
+                
+                for (let x = 0; x < canvasWidth; x += 20) {
+                    for (let y = 0; y < canvasHeight; y += 20) {
+                        const cx = (x - canvasWidth / 2) / scale;
+                        const cy = (y - canvasHeight / 2) / scale;
+                        
+                        // Simplified Mandelbrot iteration
+                        let zx = cx + Math.sin(time) * 0.1;
+                        let zy = cy + Math.cos(time) * 0.1;
+                        let iterations = 0;
+                        const maxIterations = 20;
+                        
+                        while (zx * zx + zy * zy < 4 && iterations < maxIterations) {
+                            const tmp = zx * zx - zy * zy + cx;
+                            zy = 2 * zx * zy + cy;
+                            zx = tmp;
+                            iterations++;
+                        }
+                        
+                        const intensity = iterations / maxIterations;
+                        if (intensity > 0.3) {
+                            points.push({
+                                x: x,
+                                y: y,
+                                intensity: intensity,
+                                iterations: iterations
+                            });
+                        }
+                    }
+                }
+                
+                return points;
+            }
+            
+            // Part 3: Chaotic Movement Mathematics
+            calculateChaoticMovement(process, time) {
+                const id = process.id;
+                
+                // Use process ID as seed for consistent but unique movement
+                const seed1 = id * 0.1;
+                const seed2 = id * 0.15;
+                
+                // Chaotic butterfly flight pattern
+                const chaosX = Math.sin(time * 0.5 + seed1) * 2 + 
+                              Math.sin(time * 1.7 + seed2) * 1.5 +
+                              Math.sin(time * 3.1 + seed1 * 2) * 0.8;
+                              
+                const chaosY = Math.cos(time * 0.7 + seed2) * 2 + 
+                              Math.cos(time * 1.3 + seed1) * 1.2 +
+                              Math.cos(time * 2.9 + seed2 * 1.5) * 0.6;
+                
+                return {
+                    chaosX: chaosX,
+                    chaosY: chaosY,
+                    seed1: seed1,
+                    seed2: seed2
+                };
+            }
+            
+            // Part 4: Fractal Branching Mathematics
+            calculateFractalBranches(process1, process2, seed, time) {
+                const midX = (process1.x + process2.x) / 2;
+                const midY = (process1.y + process2.y) / 2;
+                const branches = [];
+                
+                // Generate fractal branch points
+                for (let i = 0; i < 3; i++) {
+                    const angle = (i * Math.PI * 2 / 3) + time + seed;
+                    const length = 30 + Math.sin(time * 2 + seed + i) * 15;
+                    
+                    const branchX = midX + Math.cos(angle) * length;
+                    const branchY = midY + Math.sin(angle) * length;
+                    
+                    branches.push({
+                        startX: midX,
+                        startY: midY,
+                        endX: branchX,
+                        endY: branchY,
+                        angle: angle,
+                        length: length,
+                        subBranches: []
+                    });
+                    
+                    // Recursive smaller branches
+                    if (Math.random() > 0.5) {
+                        const subAngle = angle + (Math.random() - 0.5) * Math.PI / 2;
+                        const subLength = length * 0.6;
+                        const subX = branchX + Math.cos(subAngle) * subLength;
+                        const subY = branchY + Math.sin(subAngle) * subLength;
+                        
+                        branches[i].subBranches.push({
+                            startX: branchX,
+                            startY: branchY,
+                            endX: subX,
+                            endY: subY,
+                            angle: subAngle,
+                            length: subLength
+                        });
+                    }
+                }
+                
+                return branches;
+            }
+            
+            // Secondary Attractor Mathematics
+            calculateSecondaryAttractor(parent, child, time, steps, scale, offset) {
+                const points = [];
+                
+                // Different attractor parameters using golden ratio for secondary pattern
+                const sigma2 = 12 * this.phi + offset * this.phi * 0.5;
+                const rho2 = 26 / this.phi + offset * this.phi * 0.8;
+                const beta2 = 2.5 * this.phi + offset * this.phi * 0.1;
+                
+                let x = 0.5 + offset * this.phi * 0.2;
+                let y = 0.5 + offset * this.phi * 0.15;
+                let z = 0.5 + offset * this.phi * 0.1;
+                
+                for (let i = 0; i < steps; i++) {
+                    // Modified Lorenz equations for secondary attractor with golden ratio
+                    const dx = sigma2 * (y - x);
+                    const dy = x * (rho2 - z) - y;
+                    const dz = x * y - beta2 * z;
+                    
+                    x += dx * (0.008 * this.phi);
+                    y += dy * (0.008 * this.phi);
+                    z += dz * (0.008 * this.phi);
+                    
+                    // Map to screen coordinates with golden ratio scaling
+                    const progress = i / steps;
+                    const baseX = parent.x + (child.x - parent.x) * progress;
+                    const baseY = parent.y + (child.y - parent.y) * progress;
+                    
+                    // Different phase and scaling using golden ratio for secondary attractor
+                    const phaseOffset = offset * Math.PI / this.phi + Math.PI / this.phi;
+                    const secondaryScale = scale * (1 / this.phi); // Golden ratio inverse scaling
+                    const screenX = baseX + x * secondaryScale * Math.cos(time * this.phi * this.phi + phaseOffset);
+                    const screenY = baseY + y * secondaryScale * Math.sin(time * this.phi * this.phi + phaseOffset);
+                    
+                    points.push({x: screenX, y: screenY});
+                }
+                
+                return points;
+            }
+            
+            // Control methods for enabling/disabling components
+            toggleComponent(componentName) {
+                if (this.enabledComponents.hasOwnProperty(componentName)) {
+                    this.enabledComponents[componentName] = !this.enabledComponents[componentName];
+                }
+            }
+            
+            isComponentEnabled(componentName) {
+                return this.enabledComponents[componentName] || false;
+            }
+            
+            // π Calculation Methods using Chaos Mathematics
+            
+            // Method 1: Monte Carlo π using Mandelbrot field
+            calculatePiMonteCarlo(iterations = 10000) {
+                let pointsInCircle = 0;
+                let totalPoints = 0;
+                
+                for (let i = 0; i < iterations; i++) {
+                    // Generate random points in unit square
+                    const x = Math.random() * 2 - 1; // -1 to 1
+                    const y = Math.random() * 2 - 1; // -1 to 1
+                    
+                    // Check if point is inside unit circle
+                    if (x * x + y * y <= 1) {
+                        pointsInCircle++;
+                    }
+                    totalPoints++;
+                }
+                
+                // π ≈ 4 * (points in circle / total points)
+                return 4 * (pointsInCircle / totalPoints);
+            }
+            
+            // Method 2: Buffon's Needle using Lorenz attractor
+            calculatePiBuffonNeedle(needleLength = 1, lineSpacing = 2, iterations = 10000) {
+                let crossings = 0;
+                
+                for (let i = 0; i < iterations; i++) {
+                    // Generate needle position and angle using chaotic system
+                    const time = Date.now() * 0.001 + i * 0.01;
+                    const x = Math.sin(time * this.phi) * 0.5; // Position
+                    const angle = Math.cos(time * this.phi * this.phi) * Math.PI; // Angle
+                    
+                    // Calculate needle endpoints
+                    const x1 = x - (needleLength / 2) * Math.cos(angle);
+                    const x2 = x + (needleLength / 2) * Math.cos(angle);
+                    
+                    // Check for crossings with parallel lines
+                    const line1 = Math.floor(x1 / lineSpacing) * lineSpacing;
+                    const line2 = Math.floor(x2 / lineSpacing) * lineSpacing;
+                    
+                    if (line1 !== line2) {
+                        crossings++;
+                    }
+                }
+                
+                // π ≈ (2 * needleLength * iterations) / (lineSpacing * crossings)
+                return crossings > 0 ? (2 * needleLength * iterations) / (lineSpacing * crossings) : 0;
+            }
+            
+            // Method 3: Infinite Series using Fractal Branching
+            calculatePiInfiniteSeries(terms = 1000) {
+                let pi = 0;
+                
+                // Leibniz formula: π/4 = 1 - 1/3 + 1/5 - 1/7 + 1/9 - ...
+                for (let i = 0; i < terms; i++) {
+                    const term = 1 / (2 * i + 1);
+                    pi += (i % 2 === 0) ? term : -term;
+                }
+                
+                return 4 * pi;
+            }
+            
+            // Method 4: Chaos-based π approximation using golden ratio
+            calculatePiGoldenRatio(iterations = 1000) {
+                let pi = 0;
+                
+                for (let i = 0; i < iterations; i++) {
+                    // Use golden ratio in chaotic iteration
+                    const x = Math.sin(i * this.phi) * this.phi;
+                    const y = Math.cos(i * this.phi * this.phi) * this.phi;
+                    
+                    // Accumulate π approximation
+                    pi += Math.atan2(y, x) / (i + 1);
+                }
+                
+                return Math.abs(pi * 2);
+            }
+            
+            // Method 5: Mandelbrot-based π calculation
+            calculatePiMandelbrot(iterations = 1000) {
+                let pi = 0;
+                const scale = 100;
+                
+                for (let i = 0; i < iterations; i++) {
+                    const cx = (i % scale) / scale - 0.5;
+                    const cy = Math.floor(i / scale) / scale - 0.5;
+                    
+                    // Simplified Mandelbrot iteration
+                    let zx = cx;
+                    let zy = cy;
+                    let iter = 0;
+                    const maxIter = 20;
+                    
+                    while (zx * zx + zy * zy < 4 && iter < maxIter) {
+                        const tmp = zx * zx - zy * zy + cx;
+                        zy = 2 * zx * zy + cy;
+                        zx = tmp;
+                        iter++;
+                    }
+                    
+                    // Use iteration count to approximate π
+                    pi += Math.sin(iter * Math.PI / maxIter) / iterations;
+                }
+                
+                return Math.abs(pi * 4);
+            }
+            
+            // Combined π calculation using all methods
+            calculatePiCombined(iterations = 1000) {
+                const methods = [
+                    this.calculatePiMonteCarlo(iterations),
+                    this.calculatePiBuffonNeedle(1, 2, iterations),
+                    this.calculatePiInfiniteSeries(Math.min(iterations, 1000)),
+                    this.calculatePiGoldenRatio(iterations),
+                    this.calculatePiMandelbrot(iterations)
+                ];
+                
+                // Return average of all methods
+                const validMethods = methods.filter(m => m > 0 && m < 10);
+                return validMethods.length > 0 ? 
+                    validMethods.reduce((sum, val) => sum + val, 0) / validMethods.length : 
+                    Math.PI;
+            }
+            
+            // Infinite Iteration π Methods
+            
+            // Infinite Monte Carlo with convergence tracking
+            calculatePiMonteCarloInfinite(currentIterations, previousResult = 0) {
+                let pointsInCircle = 0;
+                const batchSize = 1000; // Process in batches for performance
+                
+                for (let i = 0; i < batchSize; i++) {
+                    const x = Math.random() * 2 - 1;
+                    const y = Math.random() * 2 - 1;
+                    if (x * x + y * y <= 1) {
+                        pointsInCircle++;
+                    }
+                }
+                
+                const newTotal = currentIterations + batchSize;
+                const newPointsInCircle = (previousResult * currentIterations / 4) + pointsInCircle;
+                return 4 * (newPointsInCircle / newTotal);
+            }
+            
+            // Infinite Buffon's Needle with convergence tracking
+            calculatePiBuffonInfinite(currentIterations, previousCrossings = 0, previousResult = 0) {
+                const batchSize = 1000;
+                let newCrossings = 0;
+                const needleLength = 1;
+                const lineSpacing = 2;
+                
+                for (let i = 0; i < batchSize; i++) {
+                    const time = Date.now() * 0.001 + i * 0.01;
+                    const x = Math.sin(time * this.phi) * 0.5;
+                    const angle = Math.cos(time * this.phi * this.phi) * Math.PI;
+                    
+                    const x1 = x - (needleLength / 2) * Math.cos(angle);
+                    const x2 = x + (needleLength / 2) * Math.cos(angle);
+                    
+                    const line1 = Math.floor(x1 / lineSpacing) * lineSpacing;
+                    const line2 = Math.floor(x2 / lineSpacing) * lineSpacing;
+                    
+                    if (line1 !== line2) {
+                        newCrossings++;
+                    }
+                }
+                
+                const totalCrossings = previousCrossings + newCrossings;
+                const totalIterations = currentIterations + batchSize;
+                
+                return totalCrossings > 0 ? (2 * needleLength * totalIterations) / (lineSpacing * totalCrossings) : 0;
+            }
+            
+            // Infinite Series with convergence tracking
+            calculatePiInfiniteSeriesInfinite(currentTerms, previousSum = 0) {
+                const batchSize = 100;
+                let sum = previousSum;
+                
+                for (let i = currentTerms; i < currentTerms + batchSize; i++) {
+                    const term = 1 / (2 * i + 1);
+                    sum += (i % 2 === 0) ? term : -term;
+                }
+                
+                return 4 * sum;
+            }
+            
+            // Infinite Golden Ratio with convergence tracking
+            calculatePiGoldenRatioInfinite(currentIterations, previousSum = 0) {
+                const batchSize = 100;
+                let sum = previousSum;
+                
+                for (let i = currentIterations; i < currentIterations + batchSize; i++) {
+                    const x = Math.sin(i * this.phi) * this.phi;
+                    const y = Math.cos(i * this.phi * this.phi) * this.phi;
+                    sum += Math.atan2(y, x) / (i + 1);
+                }
+                
+                return Math.abs(sum * 2);
+            }
+            
+            // Calculate accuracy (how close to actual π)
+            calculateAccuracy(calculatedPi) {
+                const actualPi = Math.PI;
+                const error = Math.abs(calculatedPi - actualPi);
+                return Math.max(0, 1 - (error / actualPi)) * 100; // Percentage accuracy
+            }
+            
+            // Rapidly Converging Series Methods
+            
+            // Ramanujan's rapidly converging series
+            calculatePiRamanujan(iterations = 10) {
+                let sum = 0;
+                const sqrt2 = Math.sqrt(2);
+                
+                for (let n = 0; n < iterations; n++) {
+                    const numerator = this.factorial(4 * n) * (1103 + 26390 * n);
+                    const denominator = Math.pow(this.factorial(n), 4) * Math.pow(396, 4 * n);
+                    sum += numerator / denominator;
+                }
+                
+                return 1 / (2 * sqrt2 * sum / 9801);
+            }
+            
+            // Chudnovsky algorithm (most rapidly converging)
+            calculatePiChudnovsky(iterations = 10) {
+                let sum = 0;
+                const sqrtC = Math.sqrt(640320);
+                
+                for (let n = 0; n < iterations; n++) {
+                    const numerator = this.factorial(6 * n) * (13591409 + 545140134 * n);
+                    const denominator = this.factorial(3 * n) * Math.pow(this.factorial(n), 3) * Math.pow(-640320, 3 * n);
+                    sum += numerator / denominator;
+                }
+                
+                return 1 / (12 * sum / sqrtC);
+            }
+            
+            // Machin-like formula (rapid convergence)
+            calculatePiMachin(iterations = 20) {
+                let sum = 0;
+                
+                for (let n = 0; n < iterations; n++) {
+                    const term1 = Math.pow(-1, n) / (2 * n + 1) * Math.pow(1/5, 2 * n + 1);
+                    const term2 = Math.pow(-1, n) / (2 * n + 1) * Math.pow(1/239, 2 * n + 1);
+                    sum += 4 * (4 * term1 - term2);
+                }
+                
+                return sum;
+            }
+            
+            // Gauss-Legendre Algorithm (quadratic convergence)
+            calculatePiGaussLegendre(iterations = 10) {
+                let a = 1;
+                let b = 1 / Math.sqrt(2);
+                let t = 1/4;
+                let p = 1;
+                
+                for (let i = 0; i < iterations; i++) {
+                    const aNext = (a + b) / 2;
+                    const bNext = Math.sqrt(a * b);
+                    const tNext = t - p * Math.pow(a - aNext, 2);
+                    const pNext = 2 * p;
+                    
+                    a = aNext;
+                    b = bNext;
+                    t = tNext;
+                    p = pNext;
+                }
+                
+                return Math.pow(a + b, 2) / (4 * t);
+            }
+            
+            // Borwein's quartic algorithm (quartic convergence)
+            calculatePiBorweinQuartic(iterations = 10) {
+                let y = Math.sqrt(2) - 1;
+                let a = 6 - 4 * Math.sqrt(2);
+                let pi = 1 / a;
+                
+                for (let i = 0; i < iterations; i++) {
+                    const y4 = Math.pow(y, 4);
+                    const yNext = (1 - Math.pow(1 - y4, 1/4)) / (1 + Math.pow(1 - y4, 1/4));
+                    const aNext = a * Math.pow(1 + yNext, 4) - Math.pow(2, 2 * i + 3) * yNext * (1 + yNext + Math.pow(yNext, 2));
+                    
+                    y = yNext;
+                    a = aNext;
+                    pi = 1 / a;
+                }
+                
+                return pi;
+            }
+            
+            // Helper function for factorial calculation
+            factorial(n) {
+                if (n < 0) return 0;
+                if (n === 0 || n === 1) return 1;
+                
+                let result = 1;
+                for (let i = 2; i <= n; i++) {
+                    result *= i;
+                }
+                return result;
+            }
+            
+            // Infinite versions of rapid convergence methods
+            
+            // Infinite Ramanujan series
+            calculatePiRamanujanInfinite(currentIterations, previousSum = 0) {
+                const batchSize = 1; // Process one term at a time for precision
+                let sum = previousSum;
+                const sqrt2 = Math.sqrt(2);
+                
+                for (let n = currentIterations; n < currentIterations + batchSize; n++) {
+                    const numerator = this.factorial(4 * n) * (1103 + 26390 * n);
+                    const denominator = Math.pow(this.factorial(n), 4) * Math.pow(396, 4 * n);
+                    sum += numerator / denominator;
+                }
+                
+                return 1 / (2 * sqrt2 * sum / 9801);
+            }
+            
+            // Infinite Chudnovsky series
+            calculatePiChudnovskyInfinite(currentIterations, previousSum = 0) {
+                const batchSize = 1; // Process one term at a time for precision
+                let sum = previousSum;
+                const sqrtC = Math.sqrt(640320);
+                
+                for (let n = currentIterations; n < currentIterations + batchSize; n++) {
+                    const numerator = this.factorial(6 * n) * (13591409 + 545140134 * n);
+                    const denominator = this.factorial(3 * n) * Math.pow(this.factorial(n), 3) * Math.pow(-640320, 3 * n);
+                    sum += numerator / denominator;
+                }
+                
+                return 1 / (12 * sum / sqrtC);
+            }
+            
+            // Infinite Gauss-Legendre
+            calculatePiGaussLegendreInfinite(currentIterations, previousState = {a: 1, b: 1/Math.sqrt(2), t: 1/4, p: 1}) {
+                const batchSize = 1; // One iteration at a time
+                let {a, b, t, p} = previousState;
+                
+                for (let i = 0; i < batchSize; i++) {
+                    const aNext = (a + b) / 2;
+                    const bNext = Math.sqrt(a * b);
+                    const tNext = t - p * Math.pow(a - aNext, 2);
+                    const pNext = 2 * p;
+                    
+                    a = aNext;
+                    b = bNext;
+                    t = tNext;
+                    p = pNext;
+                }
+                
+                return {
+                    pi: Math.pow(a + b, 2) / (4 * t),
+                    state: {a, b, t, p}
+                };
+            }
+        }
+
         class VampireProcessVisualizer {
             constructor() {
                 this.canvas = document.getElementById('vampireCanvas');
@@ -236,6 +967,37 @@
                 this.isDrawing = false;
                 this.drawingPath = [];
                 this.lastMousePos = { x: 0, y: 0 };
+                
+                // Bresenham circle settings
+                this.bresenhamCirclesEnabled = false;
+                this.circleRadius = 8;
+                this.circleSpacing = 20;
+                
+                // Initialize Chaos Mathematics
+                this.chaosMath = new ChaosMath();
+                
+                // π Calculation tracking
+                this.piCalculations = {
+                    monteCarlo: 0,
+                    buffonNeedle: 0,
+                    infiniteSeries: 0,
+                    goldenRatio: 0,
+                    mandelbrot: 0,
+                    ramanujan: 0,
+                    chudnovsky: 0,
+                    machin: 0,
+                    gaussLegendre: 0,
+                    borweinQuartic: 0,
+                    combined: 0,
+                    actualPi: Math.PI,
+                    iterations: 1000,
+                    isCalculating: false,
+                    infiniteMode: false,
+                    infiniteIterations: 0,
+                    convergenceHistory: [],
+                    bestAccuracy: 0,
+                    animationId: null
+                };
                 
                 // Visual settings
                 this.canvasWidth = 1000;
@@ -300,8 +1062,8 @@
             
             updateCustomCursorPosition() {
                 const canvasRect = this.canvas.getBoundingClientRect();
-                this.customCursor.style.left = (canvasRect.left + this.cursorPosition.x - 10) + 'px';
-                this.customCursor.style.top = (canvasRect.top + this.cursorPosition.y - 10) + 'px';
+                this.customCursor.style.left = (canvasRect.left + this.cursorPosition.x - 15) + 'px';
+                this.customCursor.style.top = (canvasRect.top + this.cursorPosition.y - 15) + 'px';
             }
             
             startDrawing(e) {
@@ -433,6 +1195,142 @@
                 this.drawingPath = [];
             }
             
+            // Bresenham's Circle Algorithm Implementation
+            bresenhamCircle(centerX, centerY, radius) {
+                const points = [];
+                let x = 0;
+                let y = radius;
+                let d = 3 - 2 * radius;
+                
+                // Draw the initial points
+                this.addCirclePoints(points, centerX, centerY, x, y);
+                
+                while (y >= x) {
+                    x++;
+                    
+                    if (d > 0) {
+                        y--;
+                        d = d + 4 * (x - y) + 10;
+                    } else {
+                        d = d + 4 * x + 6;
+                    }
+                    
+                    this.addCirclePoints(points, centerX, centerY, x, y);
+                }
+                
+                return points;
+            }
+            
+            addCirclePoints(points, centerX, centerY, x, y) {
+                // Add all 8 symmetric points
+                points.push({x: centerX + x, y: centerY + y});
+                points.push({x: centerX - x, y: centerY + y});
+                points.push({x: centerX + x, y: centerY - y});
+                points.push({x: centerX - x, y: centerY - y});
+                points.push({x: centerX + y, y: centerY + x});
+                points.push({x: centerX - y, y: centerY + x});
+                points.push({x: centerX + y, y: centerY - x});
+                points.push({x: centerX - y, y: centerY - x});
+            }
+            
+            drawBresenhamCirclesAlongPath() {
+                if (this.drawingPath.length < 2) return;
+                
+                this.ctx.strokeStyle = 'rgba(255, 68, 68, 0.6)';
+                this.ctx.lineWidth = 1;
+                
+                // Calculate points along the path where circles should be drawn
+                const circlePositions = this.calculateCirclePositions();
+                
+                for (const pos of circlePositions) {
+                    this.drawBresenhamCircleAt(pos.x, pos.y, this.circleRadius);
+                }
+            }
+            
+            calculateCirclePositions() {
+                const positions = [];
+                
+                for (let i = 0; i < this.drawingPath.length - 1; i++) {
+                    const start = this.drawingPath[i];
+                    const end = this.drawingPath[i + 1];
+                    
+                    const distance = Math.sqrt(
+                        Math.pow(end.x - start.x, 2) + 
+                        Math.pow(end.y - start.y, 2)
+                    );
+                    
+                    const numCircles = Math.floor(distance / this.circleSpacing);
+                    
+                    for (let j = 0; j <= numCircles; j++) {
+                        const t = j / Math.max(numCircles, 1);
+                        const x = start.x + (end.x - start.x) * t;
+                        const y = start.y + (end.y - start.y) * t;
+                        
+                        positions.push({x, y});
+                    }
+                }
+                
+                return positions;
+            }
+            
+            drawBresenhamCircleAt(centerX, centerY, radius) {
+                const points = this.bresenhamCircle(centerX, centerY, radius);
+                
+                this.ctx.beginPath();
+                for (let i = 0; i < points.length; i++) {
+                    const point = points[i];
+                    if (i === 0) {
+                        this.ctx.moveTo(point.x, point.y);
+                    } else {
+                        this.ctx.lineTo(point.x, point.y);
+                    }
+                }
+                this.ctx.stroke();
+                
+                // Fill the circle with a subtle color
+                this.ctx.fillStyle = 'rgba(255, 68, 68, 0.1)';
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                this.ctx.fill();
+            }
+            
+            drawBresenhamCirclesAlongAttractor(parent, child, time, steps, scale) {
+                const phi = 1.618033988749895;
+                const sigma = 10 * phi;
+                const rho = 28 / phi;
+                const beta = 8/3 * phi;
+                
+                let x = 1, y = 1, z = 1;
+                const attractorPoints = [];
+                
+                // Generate attractor points
+                for (let i = 0; i < steps; i++) {
+                    const dx = sigma * (y - x);
+                    const dy = x * (rho - z) - y;
+                    const dz = x * y - beta * z;
+                    
+                    x += dx * 0.01;
+                    y += dy * 0.01;
+                    z += dz * 0.01;
+                    
+                    const progress = i / steps;
+                    const baseX = parent.x + (child.x - parent.x) * progress;
+                    const baseY = parent.y + (child.y - parent.y) * progress;
+                    
+                    const screenX = baseX + x * scale * Math.sin(time * phi);
+                    const screenY = baseY + y * scale * Math.cos(time * phi);
+                    
+                    attractorPoints.push({x: screenX, y: screenY});
+                }
+                
+                // Draw Bresenham circles at regular intervals along the attractor
+                const circleSpacing = Math.max(1, Math.floor(attractorPoints.length / 20));
+                for (let i = 0; i < attractorPoints.length; i += circleSpacing) {
+                    const point = attractorPoints[i];
+                    this.drawBresenhamCircleAt(point.x, point.y, this.circleRadius * 0.6);
+                }
+            }
+            
             spawnVampireProcess(parentId, depth) {
                 if (!this.isRunning) return;
                 
@@ -445,6 +1343,8 @@
                     parentId: parentId,
                     x: x,
                     y: y,
+                    originalX: x,
+                    originalY: y,
                     depth: depth,
                     state: 'spawning',
                     spawnTime: Date.now(),
@@ -501,13 +1401,16 @@
             update() {
                 this.frameCount++;
                 
-                // Update process states
+                // Update process states and add chaotic movement
                 for (const [id, process] of this.processes) {
                     process.lifeTime = Date.now() - process.spawnTime;
                     
                     if (process.state === 'spawning' && process.lifeTime > 50) {
                         process.state = 'active';
                     }
+                    
+                    // Add chaotic butterfly movement
+                    this.updateChaoticMovement(process);
                 }
                 
                 // Update cursor following
@@ -517,9 +1420,31 @@
                 this.updateStats();
             }
             
+            updateChaoticMovement(process) {
+                if (!this.chaosMath.isComponentEnabled('chaoticMovement')) return;
+                
+                const time = Date.now() * 0.001;
+                const movement = this.chaosMath.calculateChaoticMovement(process, time);
+                
+                // Add some drift to the original position
+                process.originalX = process.originalX || process.x;
+                process.originalY = process.originalY || process.y;
+                
+                // Update position with chaotic movement
+                process.x = process.originalX + movement.chaosX;
+                process.y = process.originalY + movement.chaosY;
+                
+                // Keep butterflies within canvas bounds
+                process.x = Math.max(30, Math.min(this.canvasWidth - 30, process.x));
+                process.y = Math.max(30, Math.min(this.canvasHeight - 30, process.y));
+            }
+            
             draw() {
                 // Clear canvas
                 this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+                
+                // Draw Mandelbrot field background
+                this.drawMandelbrotField();
                 
                 // Draw grid
                 this.drawGrid();
@@ -535,6 +1460,9 @@
                 
                 // Draw black lines
                 this.drawBlackLines();
+                
+                // Draw infinite π visualization if active
+                this.drawInfinitePiVisualization();
                 
                 // Draw info
                 this.drawInfo();
@@ -553,6 +1481,11 @@
                     this.ctx.lineTo(this.drawingPath[i].x, this.drawingPath[i].y);
                 }
                 this.ctx.stroke();
+                
+                // Draw Bresenham circles along the line if enabled
+                if (this.bresenhamCirclesEnabled) {
+                    this.drawBresenhamCirclesAlongPath();
+                }
             }
             
             drawGrid() {
@@ -577,194 +1510,338 @@
             }
             
             drawCursorTrail() {
-                // Draw cursor trail
+                // Draw cursor trail with butterfly shapes
                 for (let i = 0; i < this.cursorTrails.length; i++) {
                     const trail = this.cursorTrails[i];
                     const alpha = trail.life;
-                    const size = 4 * alpha;
+                    const size = 8 * alpha;
                     
-                    this.ctx.fillStyle = `rgba(255, 68, 68, ${alpha * 0.6})`;
-                    this.ctx.beginPath();
-                    this.ctx.arc(trail.x, trail.y, size, 0, 2 * Math.PI);
-                    this.ctx.fill();
+                    this.drawButterflyShape(trail.x, trail.y, size, alpha * 0.6);
                 }
                 
-                // Draw cursor position indicator
-                this.ctx.fillStyle = 'rgba(255, 68, 68, 0.3)';
+                // Draw cursor position indicator with butterfly
+                this.drawButterflyShape(this.cursorPosition.x, this.cursorPosition.y, 20, 0.3);
+                
+                // Draw outer glow
+                this.ctx.fillStyle = 'rgba(255, 68, 68, 0.2)';
                 this.ctx.beginPath();
-                this.ctx.arc(this.cursorPosition.x, this.cursorPosition.y, 25, 0, 2 * Math.PI);
+                this.ctx.arc(this.cursorPosition.x, this.cursorPosition.y, 35, 0, 2 * Math.PI);
+                this.ctx.fill();
+            }
+            
+            drawButterflyShape(x, y, size, alpha) {
+                const wingSize = size * 0.8;
+                const bodySize = size * 0.3;
+                const flap = Math.sin(Date.now() * 0.01) * 0.1;
+                
+                this.ctx.save();
+                this.ctx.globalAlpha = alpha;
+                this.ctx.translate(x, y);
+                
+                // Draw left wing
+                this.ctx.fillStyle = `rgba(255, 68, 68, ${alpha})`;
+                this.ctx.beginPath();
+                this.ctx.ellipse(-wingSize/3, -wingSize/4 + flap, wingSize/2, wingSize/3, -0.3, 0, 2 * Math.PI);
                 this.ctx.fill();
                 
-                this.ctx.strokeStyle = '#ff4444';
-                this.ctx.lineWidth = 2;
+                // Draw right wing
                 this.ctx.beginPath();
-                this.ctx.arc(this.cursorPosition.x, this.cursorPosition.y, 25, 0, 2 * Math.PI);
-                this.ctx.stroke();
+                this.ctx.ellipse(wingSize/3, -wingSize/4 - flap, wingSize/2, wingSize/3, 0.3, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // Draw body
+                this.ctx.fillStyle = `rgba(51, 51, 51, ${alpha})`;
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, 0, bodySize/4, bodySize, 0, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // Add wing details
+                this.ctx.fillStyle = `rgba(255, 102, 102, ${alpha * 0.7})`;
+                this.ctx.beginPath();
+                this.ctx.ellipse(-wingSize/3, -wingSize/4 + flap, wingSize/4, wingSize/6, -0.3, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                this.ctx.beginPath();
+                this.ctx.ellipse(wingSize/3, -wingSize/4 - flap, wingSize/4, wingSize/6, 0.3, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                this.ctx.restore();
             }
             
             drawConnections() {
-                this.ctx.strokeStyle = '#ff6666';
-                this.ctx.lineWidth = 2;
+                // Draw Lorenz attractor connections between all processes
+                const processArray = Array.from(this.processes.values());
                 
-                for (const event of this.events.slice(-50)) { // Show last 50 events
-                    if (event.type === 'spawn' && event.parentId > 0) {
-                        const parent = this.processes.get(event.parentId);
-                        const child = this.processes.get(event.processId);
+                for (let i = 0; i < processArray.length; i++) {
+                    for (let j = i + 1; j < processArray.length; j++) {
+                        const process1 = processArray[i];
+                        const process2 = processArray[j];
+                        const distance = Math.sqrt(
+                            Math.pow(process2.x - process1.x, 2) + 
+                            Math.pow(process2.y - process1.y, 2)
+                        );
                         
-                        if (parent && child) {
-                            this.drawSineWaveConnection(parent, child);
+                        // Only draw connections for nearby processes
+                        if (distance < 250) {
+                            this.drawLorenzAttractor(process1, process2);
                         }
                     }
                 }
             }
             
-            drawSineWaveConnection(parent, child) {
-                const dx = child.x - parent.x;
-                const dy = child.y - parent.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                const angle = Math.atan2(dy, dx);
+            drawLorenzAttractor(parent, child) {
+                if (!this.chaosMath.isComponentEnabled('lorenzAttractor')) return;
                 
-                // Circle parameters
-                const radius = 25 + Math.sin(Date.now() * 0.005) * 15; // Dynamic radius
-                const phase = Date.now() * 0.006; // Moving phase for animation
+                const time = Date.now() * 0.001;
+                const steps = 150;
+                const scale = 25;
+                const phi = this.chaosMath.phi;
                 
-                // Calculate midpoint
-                const midX = (parent.x + child.x) / 2;
-                const midY = (parent.y + child.y) / 2;
+                // Draw multiple coexisting attractors using golden ratio parameters
+                this.drawCoexistingAttractor(parent, child, time, steps, scale, 10 * phi, 28 / phi, 8/3 * phi, 0, `rgba(255, 102, 102, 0.6)`, 1);
+                this.drawCoexistingAttractor(parent, child, time, steps, scale, 10 / phi, 28 * phi, 8/3 / phi, 1, `rgba(255, 150, 150, 0.5)`, 0.8);
+                this.drawCoexistingAttractor(parent, child, time, steps, scale, 10 * phi * phi, 28 / phi / phi, 8/3 * phi * phi, 2, `rgba(255, 200, 200, 0.4)`, 0.6);
+                this.drawCoexistingAttractor(parent, child, time, steps, scale, 10 / phi / phi, 28 * phi * phi, 8/3 / phi / phi, 3, `rgba(255, 100, 100, 0.3)`, 0.4);
                 
-                // Draw complete circle pattern
+                // Add Bresenham circles along the attractor if enabled
+                if (this.bresenhamCirclesEnabled) {
+                    this.drawBresenhamCirclesAlongAttractor(parent, child, time, steps, scale);
+                }
+            }
+            
+            drawCoexistingAttractor(parent, child, time, steps, scale, sigma, rho, beta, offset, color, lineWidth) {
+                const attractorPoints = this.chaosMath.calculateLorenzAttractor(parent, child, time, steps, scale, sigma, rho, beta, offset);
+                
+                // Draw first half (upper wing)
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = lineWidth;
                 this.ctx.beginPath();
-                this.ctx.strokeStyle = `rgba(255, 102, 102, ${0.8})`;
                 
-                const steps = 60; // Full circle needs more steps
-                for (let i = 0; i <= steps; i++) {
-                    const t = i / steps;
-                    const circleAngle = 2 * Math.PI * t + phase; // Full 2π circle
-                    
-                    // Calculate circle position
-                    const circleX = midX + radius * Math.cos(circleAngle);
-                    const circleY = midY + radius * Math.sin(circleAngle);
-                    
-                    if (i === 0) {
-                        this.ctx.moveTo(circleX, circleY);
-                    } else {
-                        this.ctx.lineTo(circleX, circleY);
+                let firstPoint = true;
+                for (const point of attractorPoints) {
+                    if (point.wing === 'upper') {
+                        if (firstPoint) {
+                            this.ctx.moveTo(point.x, point.y);
+                            firstPoint = false;
+                        } else {
+                            this.ctx.lineTo(point.x, point.y);
+                        }
                     }
                 }
                 this.ctx.stroke();
                 
-                // Draw animated arrow pointing to child
-                const arrowAngle = Math.atan2(child.y - midY, child.x - midX);
-                const arrowX = midX + radius * Math.cos(arrowAngle + phase);
-                const arrowY = midY + radius * Math.sin(arrowAngle + phase);
-                
-                // Draw arrow pointing toward child
-                const arrowLength = 20;
-                this.ctx.strokeStyle = '#ff4444';
-                this.ctx.lineWidth = 3;
+                // Draw second half (lower wing) - flipped direction
+                this.ctx.strokeStyle = color.replace('0.6', '0.8').replace('0.5', '0.7').replace('0.4', '0.6').replace('0.3', '0.5');
+                this.ctx.lineWidth = lineWidth * 0.8;
                 this.ctx.beginPath();
-                this.ctx.moveTo(arrowX, arrowY);
-                this.ctx.lineTo(
-                    arrowX + arrowLength * Math.cos(arrowAngle),
-                    arrowY + arrowLength * Math.sin(arrowAngle)
-                );
-                this.ctx.moveTo(arrowX, arrowY);
-                this.ctx.lineTo(
-                    arrowX + arrowLength * Math.cos(arrowAngle - Math.PI / 6),
-                    arrowY + arrowLength * Math.sin(arrowAngle - Math.PI / 6)
-                );
-                this.ctx.moveTo(arrowX, arrowY);
-                this.ctx.lineTo(
-                    arrowX + arrowLength * Math.cos(arrowAngle + Math.PI / 6),
-                    arrowY + arrowLength * Math.sin(arrowAngle + Math.PI / 6)
-                );
+                
+                firstPoint = true;
+                for (const point of attractorPoints) {
+                    if (point.wing === 'lower') {
+                        if (firstPoint) {
+                            this.ctx.moveTo(point.x, point.y);
+                            firstPoint = false;
+                        } else {
+                            this.ctx.lineTo(point.x, point.y);
+                        }
+                    }
+                }
                 this.ctx.stroke();
                 
-                // Add pulsing effect to the arrow
-                const pulseSize = 1 + Math.sin(Date.now() * 0.01) * 0.5;
-                this.ctx.fillStyle = `rgba(255, 68, 68, ${0.6})`;
-                this.ctx.beginPath();
-                this.ctx.arc(arrowX, arrowY, 5 * pulseSize, 0, 2 * Math.PI);
-                this.ctx.fill();
-                
-                // Add circle pattern indicator dots
-                this.drawCirclePatternDots(midX, midY, radius, phase);
-                
-                // Draw connection lines from parent and child to circle
-                this.drawConnectionLines(parent, child, midX, midY, radius, phase);
+                // Add secondary coexisting attractor with golden ratio parameters
+                this.drawSecondaryAttractor(parent, child, time, steps, scale, offset, color);
             }
             
-            drawCirclePatternDots(midX, midY, radius, phase) {
-                // Draw dots around the circle
-                const dotSteps = 16;
-                for (let i = 0; i < dotSteps; i++) {
-                    const t = i / dotSteps;
-                    const circleAngle = 2 * Math.PI * t + phase;
+            drawSecondaryAttractor(parent, child, time, steps, scale, offset, baseColor) {
+                const secondaryPoints = this.chaosMath.calculateSecondaryAttractor(parent, child, time, steps, scale, offset);
+                
+                this.ctx.strokeStyle = baseColor.replace('0.6', '0.3').replace('0.5', '0.2').replace('0.4', '0.15').replace('0.3', '0.1');
+                this.ctx.lineWidth = 0.5;
+                this.ctx.beginPath();
+                
+                let firstPoint = true;
+                for (const point of secondaryPoints) {
+                    if (firstPoint) {
+                        this.ctx.moveTo(point.x, point.y);
+                        firstPoint = false;
+                    } else {
+                        this.ctx.lineTo(point.x, point.y);
+                    }
+                }
+                this.ctx.stroke();
+            }
+            
+            drawChaoticConnection(process1, process2, seed) {
+                const time = Date.now() * 0.002;
+                const steps = 100;
+                
+                // Use seed for variation
+                const chaos1 = Math.sin(seed * 0.1 + time) * 0.5;
+                const chaos2 = Math.cos(seed * 0.15 + time * 1.3) * 0.3;
+                
+                this.ctx.strokeStyle = `rgba(255, 150, 150, 0.4)`;
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                
+                let firstPoint = true;
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
                     
-                    const dotX = midX + radius * Math.cos(circleAngle);
-                    const dotY = midY + radius * Math.sin(circleAngle);
+                    // Chaotic interpolation
+                    const baseX = process1.x + (process2.x - process1.x) * t;
+                    const baseY = process1.y + (process2.y - process1.y) * t;
                     
-                    // Color dots based on circle phase
-                    const dotAlpha = 0.3 + Math.sin(circleAngle) * 0.4;
-                    const dotSize = 1.5 + Math.sin(circleAngle) * 1;
+                    // Add chaos
+                    const chaosX = Math.sin(t * Math.PI * 4 + time + seed) * 20 * (1 - Math.abs(t - 0.5) * 2);
+                    const chaosY = Math.cos(t * Math.PI * 6 + time * 1.5 + seed) * 15 * (1 - Math.abs(t - 0.5) * 2);
                     
-                    this.ctx.fillStyle = `rgba(255, 200, 200, ${dotAlpha})`;
+                    const x = baseX + chaosX + chaos1 * 10;
+                    const y = baseY + chaosY + chaos2 * 8;
+                    
+                    if (firstPoint) {
+                        this.ctx.moveTo(x, y);
+                        firstPoint = false;
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                }
+                this.ctx.stroke();
+                
+                // Add fractal-like branching
+                this.drawFractalBranches(process1, process2, seed, time);
+            }
+            
+            drawFractalBranches(process1, process2, seed, time) {
+                if (!this.chaosMath.isComponentEnabled('fractalBranches')) return;
+                
+                const branches = this.chaosMath.calculateFractalBranches(process1, process2, seed, time);
+                
+                for (const branch of branches) {
+                    this.ctx.strokeStyle = `rgba(255, 200, 200, 0.3)`;
+                    this.ctx.lineWidth = 0.5;
                     this.ctx.beginPath();
-                    this.ctx.arc(dotX, dotY, dotSize, 0, 2 * Math.PI);
-                    this.ctx.fill();
+                    this.ctx.moveTo(branch.startX, branch.startY);
+                    this.ctx.lineTo(branch.endX, branch.endY);
+                    this.ctx.stroke();
+                    
+                    // Draw sub-branches
+                    for (const subBranch of branch.subBranches) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(subBranch.startX, subBranch.startY);
+                        this.ctx.lineTo(subBranch.endX, subBranch.endY);
+                        this.ctx.stroke();
+                    }
                 }
             }
             
-            drawConnectionLines(parent, child, midX, midY, radius, phase) {
-                // Draw lines from parent and child to the circle
-                this.ctx.strokeStyle = `rgba(255, 150, 150, ${0.6})`;
-                this.ctx.lineWidth = 1;
+            drawMandelbrotField() {
+                if (!this.chaosMath.isComponentEnabled('mandelbrotField')) return;
                 
-                // Line from parent to circle
-                const parentAngle = Math.atan2(parent.y - midY, parent.x - midX);
-                const parentCircleX = midX + radius * Math.cos(parentAngle + phase);
-                const parentCircleY = midY + radius * Math.sin(parentAngle + phase);
+                // Draw a subtle Mandelbrot-inspired background field
+                const time = Date.now() * 0.0005;
+                const mandelbrotPoints = this.chaosMath.calculateMandelbrotField(this.canvasWidth, this.canvasHeight, time);
                 
-                this.ctx.beginPath();
-                this.ctx.moveTo(parent.x, parent.y);
-                this.ctx.lineTo(parentCircleX, parentCircleY);
-                this.ctx.stroke();
-                
-                // Line from child to circle
-                const childAngle = Math.atan2(child.y - midY, child.x - midX);
-                const childCircleX = midX + radius * Math.cos(childAngle + phase);
-                const childCircleY = midY + radius * Math.sin(childAngle + phase);
-                
-                this.ctx.beginPath();
-                this.ctx.moveTo(child.x, child.y);
-                this.ctx.lineTo(childCircleX, childCircleY);
-                this.ctx.stroke();
+                for (const point of mandelbrotPoints) {
+                    this.ctx.fillStyle = `rgba(255, 100, 100, ${point.intensity * 0.1})`;
+                    this.ctx.fillRect(point.x, point.y, 2, 2);
+                }
             }
             
             drawProcesses() {
                 for (const [id, process] of this.processes) {
                     const alpha = process.state === 'dying' ? 0.3 : 1.0;
-                    const color = this.colors[process.state] || this.colors.active;
+                    const size = this.processRadius * 2;
                     
-                    // Draw process circle
-                    this.ctx.fillStyle = color;
-                    this.ctx.globalAlpha = alpha;
-                    this.ctx.beginPath();
-                    this.ctx.arc(process.x, process.y, this.processRadius, 0, 2 * Math.PI);
-                    this.ctx.fill();
+                    // Draw butterfly process
+                    this.drawButterflyProcess(process.x, process.y, size, alpha, process.state);
                     
                     // Draw process ID
                     this.ctx.fillStyle = 'white';
                     this.ctx.font = 'bold 10px Arial';
+                    this.ctx.globalAlpha = alpha;
                     this.ctx.fillText(process.id.toString(), process.x, process.y);
                     
                     // Draw depth indicator
                     this.ctx.fillStyle = '#333';
                     this.ctx.font = '8px Arial';
-                    this.ctx.fillText(`d:${process.depth}`, process.x, process.y + 20);
+                    this.ctx.fillText(`d:${process.depth}`, process.x, process.y + 25);
                     
                     this.ctx.globalAlpha = 1.0;
                 }
+            }
+            
+            drawButterflyProcess(x, y, size, alpha, state) {
+                const wingSize = size * 0.8;
+                const bodySize = size * 0.4;
+                const time = Date.now() * 0.005;
+                const flap = Math.sin(time) * 0.15;
+                
+                // State-based colors
+                let wingColor, detailColor;
+                switch(state) {
+                    case 'spawning':
+                        wingColor = `rgba(255, 102, 102, ${alpha})`;
+                        detailColor = `rgba(255, 150, 150, ${alpha * 0.7})`;
+                        break;
+                    case 'dying':
+                        wingColor = `rgba(255, 170, 170, ${alpha})`;
+                        detailColor = `rgba(255, 200, 200, ${alpha * 0.7})`;
+                        break;
+                    default:
+                        wingColor = `rgba(255, 68, 68, ${alpha})`;
+                        detailColor = `rgba(255, 102, 102, ${alpha * 0.7})`;
+                }
+                
+                this.ctx.save();
+                this.ctx.globalAlpha = alpha;
+                this.ctx.translate(x, y);
+                
+                // Add pulsing effect for active processes
+                if (state === 'active') {
+                    const pulse = 1 + Math.sin(time * 2) * 0.1;
+                    this.ctx.scale(pulse, pulse);
+                }
+                
+                // Draw left wing
+                this.ctx.fillStyle = wingColor;
+                this.ctx.beginPath();
+                this.ctx.ellipse(-wingSize/3, -wingSize/4 + flap, wingSize/2, wingSize/3, -0.3, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // Draw right wing
+                this.ctx.beginPath();
+                this.ctx.ellipse(wingSize/3, -wingSize/4 - flap, wingSize/2, wingSize/3, 0.3, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // Draw body
+                this.ctx.fillStyle = `rgba(51, 51, 51, ${alpha})`;
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, 0, bodySize/4, bodySize, 0, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // Add wing details
+                this.ctx.fillStyle = detailColor;
+                this.ctx.beginPath();
+                this.ctx.ellipse(-wingSize/3, -wingSize/4 + flap, wingSize/4, wingSize/6, -0.3, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                this.ctx.beginPath();
+                this.ctx.ellipse(wingSize/3, -wingSize/4 - flap, wingSize/4, wingSize/6, 0.3, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // Add antennae for spawning processes
+                if (state === 'spawning') {
+                    this.ctx.strokeStyle = `rgba(51, 51, 51, ${alpha})`;
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(-2, -bodySize/2);
+                    this.ctx.lineTo(-4, -bodySize/2 - 3);
+                    this.ctx.moveTo(2, -bodySize/2);
+                    this.ctx.lineTo(4, -bodySize/2 - 3);
+                    this.ctx.stroke();
+                }
+                
+                this.ctx.restore();
             }
             
             drawInfo() {
@@ -792,6 +1869,299 @@
                 link.download = `vampire_process_${Date.now()}.png`;
                 link.href = this.canvas.toDataURL();
                 link.click();
+            }
+            
+            // π Calculation Methods
+            calculatePiAllMethods() {
+                if (this.piCalculations.isCalculating) return;
+                
+                this.piCalculations.isCalculating = true;
+                
+                // Calculate π using all chaos methods
+                this.piCalculations.monteCarlo = this.chaosMath.calculatePiMonteCarlo(this.piCalculations.iterations);
+                this.piCalculations.buffonNeedle = this.chaosMath.calculatePiBuffonNeedle(1, 2, this.piCalculations.iterations);
+                this.piCalculations.infiniteSeries = this.chaosMath.calculatePiInfiniteSeries(Math.min(this.piCalculations.iterations, 1000));
+                this.piCalculations.goldenRatio = this.chaosMath.calculatePiGoldenRatio(this.piCalculations.iterations);
+                this.piCalculations.mandelbrot = this.chaosMath.calculatePiMandelbrot(this.piCalculations.iterations);
+                
+                // Calculate π using rapid convergence methods
+                this.piCalculations.ramanujan = this.chaosMath.calculatePiRamanujan(Math.min(this.piCalculations.iterations / 100, 10));
+                this.piCalculations.chudnovsky = this.chaosMath.calculatePiChudnovsky(Math.min(this.piCalculations.iterations / 100, 10));
+                this.piCalculations.machin = this.chaosMath.calculatePiMachin(Math.min(this.piCalculations.iterations / 50, 20));
+                this.piCalculations.gaussLegendre = this.chaosMath.calculatePiGaussLegendre(Math.min(this.piCalculations.iterations / 100, 10));
+                this.piCalculations.borweinQuartic = this.chaosMath.calculatePiBorweinQuartic(Math.min(this.piCalculations.iterations / 100, 10));
+                
+                // Calculate combined result including all methods
+                const allMethods = [
+                    this.piCalculations.monteCarlo,
+                    this.piCalculations.buffonNeedle,
+                    this.piCalculations.infiniteSeries,
+                    this.piCalculations.goldenRatio,
+                    this.piCalculations.mandelbrot,
+                    this.piCalculations.ramanujan,
+                    this.piCalculations.chudnovsky,
+                    this.piCalculations.machin,
+                    this.piCalculations.gaussLegendre,
+                    this.piCalculations.borweinQuartic
+                ];
+                const validMethods = allMethods.filter(m => m > 0 && m < 10);
+                this.piCalculations.combined = validMethods.length > 0 ? 
+                    validMethods.reduce((sum, val) => sum + val, 0) / validMethods.length : 
+                    Math.PI;
+                
+                this.piCalculations.isCalculating = false;
+                this.updatePiDisplay();
+            }
+            
+            updatePiDisplay() {
+                // Update π display elements if they exist
+                const piElements = {
+                    'monteCarloPi': this.piCalculations.monteCarlo,
+                    'buffonPi': this.piCalculations.buffonNeedle,
+                    'seriesPi': this.piCalculations.infiniteSeries,
+                    'goldenPi': this.piCalculations.goldenRatio,
+                    'mandelbrotPi': this.piCalculations.mandelbrot,
+                    'ramanujanPi': this.piCalculations.ramanujan,
+                    'chudnovskyPi': this.piCalculations.chudnovsky,
+                    'machinPi': this.piCalculations.machin,
+                    'gaussLegendrePi': this.piCalculations.gaussLegendre,
+                    'borweinQuarticPi': this.piCalculations.borweinQuartic,
+                    'combinedPi': this.piCalculations.combined,
+                    'actualPi': this.piCalculations.actualPi
+                };
+                
+                for (const [id, value] of Object.entries(piElements)) {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.textContent = value.toFixed(6);
+                    }
+                }
+            }
+            
+            // Rapid Convergence π Calculation Methods
+            calculatePiRapidMethods() {
+                if (this.piCalculations.isCalculating) return;
+                
+                this.piCalculations.isCalculating = true;
+                
+                // Calculate π using rapid convergence methods only
+                this.piCalculations.ramanujan = this.chaosMath.calculatePiRamanujan(Math.min(this.piCalculations.iterations / 100, 10));
+                this.piCalculations.chudnovsky = this.chaosMath.calculatePiChudnovsky(Math.min(this.piCalculations.iterations / 100, 10));
+                this.piCalculations.machin = this.chaosMath.calculatePiMachin(Math.min(this.piCalculations.iterations / 50, 20));
+                this.piCalculations.gaussLegendre = this.chaosMath.calculatePiGaussLegendre(Math.min(this.piCalculations.iterations / 100, 10));
+                this.piCalculations.borweinQuartic = this.chaosMath.calculatePiBorweinQuartic(Math.min(this.piCalculations.iterations / 100, 10));
+                
+                // Calculate combined result for rapid methods only
+                const rapidMethods = [
+                    this.piCalculations.ramanujan,
+                    this.piCalculations.chudnovsky,
+                    this.piCalculations.machin,
+                    this.piCalculations.gaussLegendre,
+                    this.piCalculations.borweinQuartic
+                ];
+                const validRapidMethods = rapidMethods.filter(m => m > 0 && m < 10);
+                this.piCalculations.combined = validRapidMethods.length > 0 ? 
+                    validRapidMethods.reduce((sum, val) => sum + val, 0) / validRapidMethods.length : 
+                    Math.PI;
+                
+                this.piCalculations.isCalculating = false;
+                this.updatePiDisplay();
+            }
+            
+            drawPiVisualization() {
+                if (!this.piCalculations.isCalculating) return;
+                
+                // Draw π calculation visualization
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                this.ctx.font = 'bold 16px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('Calculating π...', this.canvasWidth / 2, 50);
+                
+                // Draw progress indicator
+                const progress = (Date.now() % 2000) / 2000;
+                this.ctx.strokeStyle = '#ff4444';
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.arc(this.canvasWidth / 2, 80, 20, 0, progress * 2 * Math.PI);
+                this.ctx.stroke();
+            }
+            
+            // Infinite π Calculation Methods
+            startInfinitePiCalculation() {
+                if (this.piCalculations.infiniteMode) return;
+                
+                this.piCalculations.infiniteMode = true;
+                this.piCalculations.infiniteIterations = 0;
+                this.piCalculations.convergenceHistory = [];
+                this.piCalculations.bestAccuracy = 0;
+                
+                // Initialize tracking variables
+                this.piCalculations.monteCarloPrevious = 0;
+                this.piCalculations.buffonPrevious = { crossings: 0, result: 0 };
+                this.piCalculations.seriesPrevious = 0;
+                this.piCalculations.goldenPrevious = 0;
+                
+                this.runInfinitePiLoop();
+            }
+            
+            stopInfinitePiCalculation() {
+                this.piCalculations.infiniteMode = false;
+                if (this.piCalculations.animationId) {
+                    cancelAnimationFrame(this.piCalculations.animationId);
+                    this.piCalculations.animationId = null;
+                }
+            }
+            
+            runInfinitePiLoop() {
+                if (!this.piCalculations.infiniteMode) return;
+                
+                // Run one iteration of each infinite method
+                this.piCalculations.infiniteIterations++;
+                
+                // Monte Carlo infinite
+                this.piCalculations.monteCarlo = this.chaosMath.calculatePiMonteCarloInfinite(
+                    this.piCalculations.infiniteIterations * 1000,
+                    this.piCalculations.monteCarloPrevious
+                );
+                this.piCalculations.monteCarloPrevious = this.piCalculations.monteCarlo;
+                
+                // Buffon's Needle infinite
+                this.piCalculations.buffonNeedle = this.chaosMath.calculatePiBuffonInfinite(
+                    this.piCalculations.infiniteIterations * 1000,
+                    this.piCalculations.buffonPrevious.crossings,
+                    this.piCalculations.buffonPrevious.result
+                );
+                this.piCalculations.buffonPrevious.result = this.piCalculations.buffonNeedle;
+                
+                // Infinite Series
+                this.piCalculations.infiniteSeries = this.chaosMath.calculatePiInfiniteSeriesInfinite(
+                    this.piCalculations.infiniteIterations * 100,
+                    this.piCalculations.seriesPrevious
+                );
+                this.piCalculations.seriesPrevious = this.piCalculations.infiniteSeries;
+                
+                // Golden Ratio infinite
+                this.piCalculations.goldenRatio = this.chaosMath.calculatePiGoldenRatioInfinite(
+                    this.piCalculations.infiniteIterations * 100,
+                    this.piCalculations.goldenPrevious
+                );
+                this.piCalculations.goldenPrevious = this.piCalculations.goldenRatio;
+                
+                // Calculate combined result
+                const methods = [
+                    this.piCalculations.monteCarlo,
+                    this.piCalculations.buffonNeedle,
+                    this.piCalculations.infiniteSeries,
+                    this.piCalculations.goldenRatio
+                ];
+                const validMethods = methods.filter(m => m > 0 && m < 10);
+                this.piCalculations.combined = validMethods.length > 0 ? 
+                    validMethods.reduce((sum, val) => sum + val, 0) / validMethods.length : 
+                    Math.PI;
+                
+                // Track convergence
+                const accuracy = this.chaosMath.calculateAccuracy(this.piCalculations.combined);
+                this.piCalculations.bestAccuracy = Math.max(this.piCalculations.bestAccuracy, accuracy);
+                
+                this.piCalculations.convergenceHistory.push({
+                    iteration: this.piCalculations.infiniteIterations,
+                    combined: this.piCalculations.combined,
+                    accuracy: accuracy,
+                    timestamp: Date.now()
+                });
+                
+                // Keep only last 1000 points for performance
+                if (this.piCalculations.convergenceHistory.length > 1000) {
+                    this.piCalculations.convergenceHistory = this.piCalculations.convergenceHistory.slice(-1000);
+                }
+                
+                // Update display
+                this.updatePiDisplay();
+                
+                // Continue infinite loop
+                this.piCalculations.animationId = requestAnimationFrame(() => this.runInfinitePiLoop());
+            }
+            
+            drawInfinitePiVisualization() {
+                if (!this.piCalculations.infiniteMode) return;
+                
+                // Draw convergence graph
+                this.drawConvergenceGraph();
+                
+                // Draw current status
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                this.ctx.font = 'bold 14px Arial';
+                this.ctx.textAlign = 'left';
+                this.ctx.fillText(`Infinite π Calculation`, 20, 30);
+                this.ctx.fillText(`Iterations: ${this.piCalculations.infiniteIterations.toLocaleString()}`, 20, 50);
+                this.ctx.fillText(`Best Accuracy: ${this.piCalculations.bestAccuracy.toFixed(4)}%`, 20, 70);
+                this.ctx.fillText(`Current π: ${this.piCalculations.combined.toFixed(8)}`, 20, 90);
+                this.ctx.fillText(`Actual π: ${Math.PI.toFixed(8)}`, 20, 110);
+            }
+            
+            drawConvergenceGraph() {
+                if (this.piCalculations.convergenceHistory.length < 2) return;
+                
+                const graphWidth = 400;
+                const graphHeight = 200;
+                const graphX = this.canvasWidth - graphWidth - 20;
+                const graphY = 20;
+                
+                // Draw graph background
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                this.ctx.fillRect(graphX, graphY, graphWidth, graphHeight);
+                
+                // Draw π line
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                const piY = graphY + graphHeight - (Math.PI - 2.5) / (4.5 - 2.5) * graphHeight;
+                this.ctx.moveTo(graphX, piY);
+                this.ctx.lineTo(graphX + graphWidth, piY);
+                this.ctx.stroke();
+                
+                // Draw convergence curve
+                this.ctx.strokeStyle = '#ff4444';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                
+                const history = this.piCalculations.convergenceHistory;
+                const maxIterations = Math.max(...history.map(h => h.iteration));
+                const minIterations = Math.min(...history.map(h => h.iteration));
+                const iterationRange = maxIterations - minIterations;
+                
+                let firstPoint = true;
+                for (const point of history) {
+                    const x = graphX + ((point.iteration - minIterations) / iterationRange) * graphWidth;
+                    const y = graphY + graphHeight - ((point.combined - 2.5) / (4.5 - 2.5)) * graphHeight;
+                    
+                    if (firstPoint) {
+                        this.ctx.moveTo(x, y);
+                        firstPoint = false;
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                }
+                this.ctx.stroke();
+                
+                // Draw accuracy curve
+                this.ctx.strokeStyle = '#44ff44';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                
+                firstPoint = true;
+                for (const point of history) {
+                    const x = graphX + ((point.iteration - minIterations) / iterationRange) * graphWidth;
+                    const y = graphY + graphHeight - (point.accuracy / 100) * graphHeight;
+                    
+                    if (firstPoint) {
+                        this.ctx.moveTo(x, y);
+                        firstPoint = false;
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                }
+                this.ctx.stroke();
             }
         }
         
@@ -830,6 +2200,119 @@
         
         function clearDrawing() {
             visualizer.clearDrawing();
+        }
+        
+        function toggleBresenhamCircles() {
+            visualizer.bresenhamCirclesEnabled = !visualizer.bresenhamCirclesEnabled;
+            const btn = document.getElementById('bresenhamBtn');
+            btn.textContent = visualizer.bresenhamCirclesEnabled ? 'Disable Bresenham Circles' : 'Enable Bresenham Circles';
+            btn.style.background = visualizer.bresenhamCirclesEnabled ? 
+                'linear-gradient(45deg, #ff4444, #cc0000)' : 
+                'linear-gradient(45deg, #666, #444)';
+        }
+        
+        function toggleChaosComponent(componentName) {
+            visualizer.chaosMath.toggleComponent(componentName);
+            const btn = document.getElementById(componentName + 'Btn');
+            const isEnabled = visualizer.chaosMath.isComponentEnabled(componentName);
+            
+            // Update button text and style
+            const componentNames = {
+                'lorenzAttractor': 'Lorenz Attractor',
+                'mandelbrotField': 'Mandelbrot Field', 
+                'chaoticMovement': 'Chaotic Movement',
+                'fractalBranches': 'Fractal Branches'
+            };
+            
+            btn.textContent = isEnabled ? 
+                `Disable ${componentNames[componentName]}` : 
+                `Enable ${componentNames[componentName]}`;
+            btn.style.background = isEnabled ? 
+                'linear-gradient(45deg, #ff4444, #cc0000)' : 
+                'linear-gradient(45deg, #666, #444)';
+        }
+        
+        // π Calculation Functions
+        function calculatePi() {
+            visualizer.calculatePiAllMethods();
+        }
+        
+        function clearPiCalculations() {
+            visualizer.piCalculations.monteCarlo = 0;
+            visualizer.piCalculations.buffonNeedle = 0;
+            visualizer.piCalculations.infiniteSeries = 0;
+            visualizer.piCalculations.goldenRatio = 0;
+            visualizer.piCalculations.mandelbrot = 0;
+            visualizer.piCalculations.ramanujan = 0;
+            visualizer.piCalculations.chudnovsky = 0;
+            visualizer.piCalculations.machin = 0;
+            visualizer.piCalculations.gaussLegendre = 0;
+            visualizer.piCalculations.borweinQuartic = 0;
+            visualizer.piCalculations.combined = 0;
+            visualizer.updatePiDisplay();
+        }
+        
+        // Rapid Convergence π Functions
+        function calculateRapidPi() {
+            visualizer.calculatePiRapidMethods();
+        }
+        
+        function clearRapidPi() {
+            visualizer.piCalculations.ramanujan = 0;
+            visualizer.piCalculations.chudnovsky = 0;
+            visualizer.piCalculations.machin = 0;
+            visualizer.piCalculations.gaussLegendre = 0;
+            visualizer.piCalculations.borweinQuartic = 0;
+            visualizer.piCalculations.combined = 0;
+            visualizer.updatePiDisplay();
+        }
+        
+        function updatePiIterations() {
+            const slider = document.getElementById('piIterations');
+            const count = document.getElementById('iterationCount');
+            visualizer.piCalculations.iterations = parseInt(slider.value);
+            count.textContent = slider.value;
+        }
+        
+        // Infinite π Calculation Functions
+        function startInfinitePi() {
+            visualizer.startInfinitePiCalculation();
+            
+            // Update button states
+            document.getElementById('startInfiniteBtn').disabled = true;
+            document.getElementById('stopInfiniteBtn').disabled = false;
+            document.getElementById('startInfiniteBtn').textContent = 'Running...';
+        }
+        
+        function stopInfinitePi() {
+            visualizer.stopInfinitePiCalculation();
+            
+            // Update button states
+            document.getElementById('startInfiniteBtn').disabled = false;
+            document.getElementById('stopInfiniteBtn').disabled = true;
+            document.getElementById('startInfiniteBtn').textContent = 'Start Infinite π';
+        }
+        
+        function resetInfinitePi() {
+            visualizer.stopInfinitePiCalculation();
+            
+            // Reset all values
+            visualizer.piCalculations.infiniteIterations = 0;
+            visualizer.piCalculations.convergenceHistory = [];
+            visualizer.piCalculations.bestAccuracy = 0;
+            visualizer.piCalculations.monteCarlo = 0;
+            visualizer.piCalculations.buffonNeedle = 0;
+            visualizer.piCalculations.infiniteSeries = 0;
+            visualizer.piCalculations.goldenRatio = 0;
+            visualizer.piCalculations.combined = 0;
+            
+            // Update display
+            visualizer.updatePiDisplay();
+            
+            // Update button states
+            document.getElementById('startInfiniteBtn').disabled = false;
+            document.getElementById('stopInfiniteBtn').disabled = true;
+            document.getElementById('startInfiniteBtn').textContent = 'Start Infinite π';
         }
         
         // Handle window resize
