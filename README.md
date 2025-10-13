@@ -132,7 +132,7 @@ window.open(window.location.href, '_blank');
 ```
 
 https://youtu.be/oOzpncIHCLs
-### Calculator
+### Binary Calculator
 ```binary
 1/101
 ```
