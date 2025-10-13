@@ -131,3 +131,8 @@ The simulator provides a comprehensive platform for exploring the fascinating be
 window.open(window.location.href, '_blank');
 ```
 
+https://youtu.be/oOzpncIHCLs
+### Calculator
+```binary
+1/101
+```
