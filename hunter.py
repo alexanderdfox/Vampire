@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
 """
-Vampire Monitor – cross-platform (Linux, macOS, Windows, BSD)
-Detects logged-in users in a target group and flags long-running / idle sessions.
+Vampire Monitor – Cross-platform (Linux, macOS, Windows, BSD)
+Monitors logged-in users by group or all users.
 """
 
+import argparse
 import platform
 import os
 import sys
 import subprocess
 import getpass
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Tuple
-
-# ---------- Configuration ----------
-TARGET_GROUP = "developers"
-IDLE_THRESHOLD_MIN = 30          # minutes
-SHOW_TOP_PROCESSES = 5
+from datetime import datetime
+from typing import List, Dict, Optional, Set, Tuple
 
 # ---------- Optional dependency ----------
 try:
@@ -23,9 +19,25 @@ try:
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
-    print("Note: Install 'psutil' for best results →  pip install psutil\n")
 
-SYSTEM = platform.system()  # 'Linux', 'Darwin', 'Windows', 'FreeBSD', ...
+SYSTEM = platform.system()
+
+# Common system groups to skip when using --all-groups
+SYSTEM_GROUPS = {
+    "root", "wheel", "daemon", "bin", "sys", "adm", "tty", "disk", "lp", "mail",
+    "news", "uucp", "man", "proxy", "kmem", "dialout", "fax", "voice", "cdrom",
+    "floppy", "tape", "sudo", "audio", "dip", "www-data", "backup", "operator",
+    "list", "irc", "src", "gnats", "shadow", "utmp", "video", "sasl", "plugdev",
+    "staff", "games", "users", "nogroup", "systemd-journal", "systemd-network",
+    "systemd-resolve", "systemd-timesync", "messagebus", "input", "kvm", "render",
+    "netdev", "lpadmin", "ssl-cert", "bluetooth", "avahi", "scanner", "colord",
+    "saned", "sambashare", "docker", "libvirt", "lxd",
+    # macOS / BSD extras
+    "admin", "staff", "everyone", "localaccounts", "netaccounts", "_*",
+    # Windows common
+    "Administrators", "Users", "Guests", "Power Users", "Backup Operators",
+    "Replicator", "Remote Desktop Users", "Network Configuration Operators",
+}
 
 
 def get_current_user() -> str:
@@ -33,32 +45,29 @@ def get_current_user() -> str:
 
 
 def get_group_members(group: str) -> List[str]:
-    """Return list of usernames in the given group (best-effort)."""
-    members = []
+    """Return list of usernames belonging to the group."""
+    members: List[str] = []
 
     if SYSTEM in ("Linux", "Darwin", "FreeBSD", "OpenBSD", "NetBSD"):
         try:
             import grp
             g = grp.getgrnam(group)
             members = list(g.gr_mem)
-            # Also include the primary group owner if relevant
         except KeyError:
-            print(f"Group '{group}' not found.")
-        except Exception as e:
-            print(f"Could not read group (Unix): {e}")
+            pass
+        except Exception:
+            pass
 
     elif SYSTEM == "Windows":
         try:
-            # net localgroup is available on all modern Windows
+            flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
             result = subprocess.run(
                 ["net", "localgroup", group],
-                capture_output=True, text=True, timeout=10,
-                creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+                capture_output=True, text=True, timeout=8, creationflags=flags
             )
             if result.returncode == 0:
-                lines = result.stdout.splitlines()
                 in_members = False
-                for line in lines:
+                for line in result.stdout.splitlines():
                     line = line.strip()
                     if line.lower().startswith("members"):
                         in_members = True
@@ -66,33 +75,56 @@ def get_group_members(group: str) -> List[str]:
                     if in_members:
                         if not line or line.startswith("---") or "The command completed" in line:
                             break
-                        # Windows can show DOMAIN\user
                         user = line.split("\\")[-1].strip()
                         if user:
                             members.append(user)
-            else:
-                print(f"Group '{group}' not found or access denied.")
-        except Exception as e:
-            print(f"Could not read group (Windows): {e}")
-
-    else:
-        print(f"Group lookup not implemented for {SYSTEM}")
+        except Exception:
+            pass
 
     return sorted(set(members))
 
 
-def get_logged_in_users() -> List[Dict]:
-    """
-    Returns list of dicts:
-    {name, terminal, host, started (datetime or None), pid}
-    """
-    users = []
+def get_all_groups() -> List[str]:
+    """Best-effort list of local groups."""
+    groups: List[str] = []
 
+    if SYSTEM in ("Linux", "Darwin", "FreeBSD", "OpenBSD", "NetBSD"):
+        try:
+            import grp
+            for g in grp.getgrall():
+                name = g.gr_name
+                if name.startswith("_") or name in SYSTEM_GROUPS:
+                    continue
+                if g.gr_mem:  # only groups that actually have members
+                    groups.append(name)
+        except Exception:
+            pass
+
+    elif SYSTEM == "Windows":
+        try:
+            flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+            result = subprocess.run(
+                ["net", "localgroup"],
+                capture_output=True, text=True, timeout=8, creationflags=flags
+            )
+            if result.returncode == 0:
+                for line in result.stdout.splitlines():
+                    line = line.strip()
+                    if line.startswith("*"):
+                        name = line[1:].strip()
+                        if name and name not in SYSTEM_GROUPS:
+                            groups.append(name)
+        except Exception:
+            pass
+
+    return sorted(set(groups))
+
+
+def get_logged_in_users() -> List[Dict]:
+    users = []
     if HAS_PSUTIL:
         for u in psutil.users():
-            started = None
-            if u.started:
-                started = datetime.fromtimestamp(u.started)
+            started = datetime.fromtimestamp(u.started) if u.started else None
             users.append({
                 "name": u.name,
                 "terminal": u.terminal,
@@ -100,160 +132,141 @@ def get_logged_in_users() -> List[Dict]:
                 "started": started,
                 "pid": u.pid,
             })
-        return users
-
-    # Fallback without psutil
-    if SYSTEM in ("Linux", "Darwin", "FreeBSD"):
-        try:
-            result = subprocess.run(["who"], capture_output=True, text=True, timeout=5)
-            for line in result.stdout.splitlines():
-                parts = line.split()
-                if len(parts) >= 2:
-                    users.append({
-                        "name": parts[0],
-                        "terminal": parts[1] if len(parts) > 1 else None,
-                        "host": parts[4] if len(parts) > 4 else None,
-                        "started": None,
-                        "pid": None,
-                    })
-        except Exception:
-            pass
-
-    elif SYSTEM == "Windows":
-        try:
-            # query user / quser
-            result = subprocess.run(
-                ["query", "user"], capture_output=True, text=True, timeout=5,
-                creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
-            )
-            # parsing quser output is messy; leave empty if it fails
-        except Exception:
-            pass
-
+    else:
+        # Minimal fallback
+        if SYSTEM != "Windows":
+            try:
+                result = subprocess.run(["who"], capture_output=True, text=True, timeout=5)
+                for line in result.stdout.splitlines():
+                    parts = line.split()
+                    if parts:
+                        users.append({
+                            "name": parts[0],
+                            "terminal": parts[1] if len(parts) > 1 else None,
+                            "host": None,
+                            "started": None,
+                            "pid": None,
+                        })
+            except Exception:
+                pass
     return users
 
 
 def session_age_minutes(started: Optional[datetime]) -> Optional[float]:
     if not started:
         return None
-    delta = datetime.now() - started
-    return delta.total_seconds() / 60.0
+    return (datetime.now() - started).total_seconds() / 60.0
 
 
-def get_unix_idle_from_w(username: str) -> Optional[str]:
-    """Best-effort idle string from classic 'w' command (Unix only)."""
-    try:
-        result = subprocess.run(["w", "-h", username], capture_output=True, text=True, timeout=3)
-        if result.returncode == 0 and result.stdout.strip():
-            # Typical: USER TTY FROM LOGIN@ IDLE ...
-            parts = result.stdout.split()
-            if len(parts) >= 5:
-                return parts[4]  # idle column
-    except Exception:
-        pass
-    return None
-
-
-def get_top_processes(username: str, n: int = 5) -> List[Tuple]:
-    """Return list of (pid, cpu%, mem%, name) for the user."""
+def get_top_processes(username: str, n: int = 4) -> List[Tuple]:
     if not HAS_PSUTIL:
         return []
-
     procs = []
-    for p in psutil.process_iter(["pid", "username", "cpu_percent", "memory_percent", "name"]):
+    for p in psutil.process_iter(["pid", "username", "name"]):
         try:
             if p.info["username"] == username:
-                # cpu_percent needs a previous call or interval; we do a quick sample
                 cpu = p.cpu_percent(interval=0.05)
-                procs.append((
-                    p.info["pid"],
-                    cpu,
-                    p.info["memory_percent"] or 0.0,
-                    p.info["name"] or "?"
-                ))
+                procs.append((p.info["pid"], cpu, p.info["name"] or "?"))
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
-
-    # Sort by CPU descending
     procs.sort(key=lambda x: x[1], reverse=True)
     return procs[:n]
 
 
-def main():
-    current = get_current_user()
-    print("=" * 60)
-    print("Vampire Monitor – Cross Platform")
-    print(f"OS          : {SYSTEM} ({platform.platform()})")
-    print(f"Current user: {current}")
-    print(f"Target group: {TARGET_GROUP}")
-    print(f"Threshold   : {IDLE_THRESHOLD_MIN} minutes")
-    print("=" * 60)
-    print()
-
-    # 1. Current user
-    print(f"--- Current User: {current} ---")
-    logged_in = get_logged_in_users()
-    my_sessions = [u for u in logged_in if u["name"] == current]
-
-    if my_sessions:
-        print("Active session(s):")
-        for s in my_sessions:
-            age = session_age_minutes(s["started"])
-            age_str = f"{age:.1f} min" if age is not None else "unknown"
-            print(f"  terminal={s['terminal']}  host={s['host']}  age={age_str}")
-    else:
-        print("No active sessions detected for current user.")
-
-    if HAS_PSUTIL:
-        print("\nTop processes (by CPU):")
-        tops = get_top_processes(current, SHOW_TOP_PROCESSES)
-        if tops:
-            print(f"{'PID':>8}  {'CPU%':>6}  {'MEM%':>6}  NAME")
-            for pid, cpu, mem, name in tops:
-                print(f"{pid:8d}  {cpu:6.1f}  {mem:6.1f}  {name}")
-        else:
-            print("  (none or access denied)")
-    print()
-
-    # 2. Group members
-    print(f"--- Group: {TARGET_GROUP} ---")
-    members = get_group_members(TARGET_GROUP)
-    if not members:
-        print("No members found or group does not exist.")
+def print_user_info(user: str, sessions: List[Dict], threshold: int, show_procs: bool = True):
+    if not sessions:
         return
 
-    print(f"Members: {', '.join(members)}\n")
+    print(f"  User: {user}")
+    for s in sessions:
+        age = session_age_minutes(s["started"])
+        age_str = f"{age:.1f} min" if age is not None else "unknown"
+        print(f"    terminal={s['terminal'] or '-'}  host={s['host'] or '-'}  age={age_str}")
 
-    for user in members:
-        if user == current:
-            continue  # already shown
+        if age is not None and age >= threshold:
+            print(f"    >>> VAMPIRE: session age ≥ {threshold} minutes")
 
-        user_sessions = [u for u in logged_in if u["name"] == user]
-        if not user_sessions:
+    if show_procs and HAS_PSUTIL:
+        tops = get_top_processes(user)
+        if tops:
+            print("    Top processes:")
+            for pid, cpu, name in tops:
+                print(f"      {pid:>7}  {cpu:5.1f}%  {name}")
+    print()
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Vampire Monitor – detect long-running / idle sessions by group or for all users"
+    )
+    parser.add_argument(
+        "-g", "--group", action="append", default=[],
+        help="Group to monitor (can be used multiple times)"
+    )
+    parser.add_argument(
+        "--all-groups", action="store_true",
+        help="Monitor every non-system group that has members"
+    )
+    parser.add_argument(
+        "-t", "--threshold", type=int, default=30,
+        help="Idle / session age threshold in minutes (default: 30)"
+    )
+    parser.add_argument(
+        "--no-procs", action="store_true",
+        help="Do not show top processes"
+    )
+    args = parser.parse_args()
+
+    current = get_current_user()
+    threshold = args.threshold
+
+    print("=" * 64)
+    print("Vampire Monitor")
+    print(f"OS           : {SYSTEM}")
+    print(f"Current user : {current}")
+    print(f"Threshold    : {threshold} minutes")
+    print("=" * 64)
+    print()
+
+    logged_in = get_logged_in_users()
+    logged_names = {u["name"] for u in logged_in}
+
+    # ---------- Decide what to monitor ----------
+    target_groups: List[str] = []
+
+    if args.all_groups:
+        target_groups = get_all_groups()
+        print(f"Mode: all non-system groups ({len(target_groups)} groups)\n")
+    elif args.group:
+        target_groups = args.group
+        print(f"Mode: specific groups → {', '.join(target_groups)}\n")
+    else:
+        # No group specified → just show all currently logged-in users
+        print("Mode: all currently logged-in users (no group filter)\n")
+        print("--- Logged-in Users ---")
+        for name in sorted(logged_names):
+            sessions = [u for u in logged_in if u["name"] == name]
+            print_user_info(name, sessions, threshold, show_procs=not args.no_procs)
+        print("Scan complete.")
+        return
+
+    # ---------- Group mode ----------
+    for group in target_groups:
+        members = get_group_members(group)
+        active_members = [m for m in members if m in logged_names]
+
+        print(f"--- Group: {group} ---")
+        if not members:
+            print("  (group not found or empty)\n")
             continue
 
-        print(f"Active group member: {user}")
-        for s in user_sessions:
-            age = session_age_minutes(s["started"])
-            age_str = f"{age:.1f} min" if age is not None else "unknown"
-            idle_extra = ""
-            if SYSTEM != "Windows":
-                w_idle = get_unix_idle_from_w(user)
-                if w_idle:
-                    idle_extra = f"  (w idle: {w_idle})"
-
-            print(f"  terminal={s['terminal']}  age={age_str}{idle_extra}")
-
-            if age is not None and age >= IDLE_THRESHOLD_MIN:
-                print(f"  >>> VAMPIRE DETECTED: session age ≥ {IDLE_THRESHOLD_MIN} min")
-
-        if HAS_PSUTIL:
-            tops = get_top_processes(user, 3)
-            if tops:
-                print("  Top processes:")
-                for pid, cpu, mem, name in tops:
-                    print(f"    {pid:>6}  {cpu:5.1f}%  {name}")
+        print(f"  Members     : {', '.join(members) if members else '(none)'}")
+        print(f"  Currently on: {', '.join(active_members) if active_members else '(none)'}")
         print()
+
+        for user in active_members:
+            sessions = [u for u in logged_in if u["name"] == user]
+            print_user_info(user, sessions, threshold, show_procs=not args.no_procs)
 
     print("Scan complete.")
 
