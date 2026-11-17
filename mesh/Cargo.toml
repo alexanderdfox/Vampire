@@ -1,0 +1,10 @@
+[package]
+name = "mesh_monitor"
+version = "2.1.0"
+edition = "2024"
+
+[dependencies]
+sysinfo = "0.30"
+ratatui = "0.26"
+crossterm = "0.27"
+eframe = "0.29"
